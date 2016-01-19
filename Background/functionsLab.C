@@ -131,6 +131,7 @@
 
 
     //ATLAS Function
+        //N parameters
         EBEB_FitsLog << "ATLAS functions" << std::endl;
         std::vector<TF1*> atlasFunctions(3);
         for (unsigned k(0);k<atlasFunctions.size();k++){
@@ -147,7 +148,11 @@
         }
         c1.Print("FitPlots/ATLASFunctions.pdf");
 
+        //ATLAS Pair search
+        //
+
     //Dijet Function
+        //N parameters
         EBEB_FitsLog << "Dijet functions" << std::endl;
         std::vector<TF1*> dijetFunctions(4);
         for (unsigned k(0);k<4;k++) {
@@ -163,7 +168,59 @@
             dijetFunctions[k]->Draw("SAME");
         }
         c1.Print("FitPlots/DijetFunctions.pdf");
+
+        //Dijet Pair search
+        //
        
+
+
+
+
+
+        std::cout << "testing out exponent sum" << std::endl;
+        for (unsigned i(0);i<4;i++) {
+            std::cout << exponentialSumString(i) << std::endl;
+        }
+        std::cout << "testing out exponentiated polynomial" << std::endl;
+        for (unsigned i(0);i<4;i++) {
+            std::cout << exponentialPoly(i) << std::endl;
+        }
+        std::cout << "testing out exponentiated power laws" << std::endl;
+        for (unsigned i(0);i<4;i++) {
+            std::cout << exponentialPowerLaw(i) << std::endl;
+        }
+        std::cout << "Testing out power law sum" << std::endl;
+        for (unsigned i(0);i<4;i++) {
+            std::cout << powerLawSum(i) << std::endl;
+        }
+        std::cout << "Testing out power law of polynomial" << std::endl;
+        for (unsigned i(2);i<6;i++) {
+            std::cout << powerLawPoly(i) << std::endl;
+        }
+        std::cout << "Testing out power law of polynomial in the power part" << std::endl;
+        for (unsigned i(0);i<6;i++) {
+            std::cout << polyPowerLaw(i) << std::endl;
+        }
+        std::cout << "Testing out power law of convex basis polynomial" << std::endl;
+        std::cout << powerLawConvexBasis(9,1,230,910) << std::endl;
+        std::cout << powerLawConvexBasis(3,6,230,910) << std::endl;
+        std::cout << "Testing out Laurent series function" << std::endl;
+        for (unsigned i(0);i<6;i++) {
+            std::cout << laurentString(i) << std::endl;
+        }
+        std::cout << "Testing out Laurent series pairs" << std::endl;
+        std::cout << laurentPairString(4,5) << std::endl;
+        std::cout << laurentPairString(3,6) << std::endl;
+        std::cout << "Testing out ATLAS function pairs" << std::endl;
+        std::cout << ATLASPair(4,5) << std::endl;
+        std::cout << ATLASPair(1,2) << std::endl;
+        std::cout << ATLASPair(0,1) << std::endl;
+        std::cout << "Testing out Dijet function pairs" << std::endl;
+        std::cout << DijetPair(4,5) << std::endl;
+        std::cout << DijetPair(1,2) << std::endl;
+        std::cout << DijetPair(0,1) << std::endl;
+
+
     }
 
 
@@ -178,15 +235,10 @@
 
 
     TString BernsteinString(unsigned n, float xMin, float xMax) {
-
         if (n == 0) {return TString("[0]");}
-
         std::ostringstream poly;
-
         for (unsigned i(0);i<n+1;i++) {
-
             unsigned factorialPart = (unsigned)TMath::Factorial(n)/( TMath::Factorial(i)*TMath::Factorial(n-i) );
-
             poly << "[" << i << "]*";
             if (factorialPart > 1) {poly << factorialPart << ".0*";}
             if (i > 1) {poly << "pow((x - " << xMin << ")/" << xMax << "," << i << ")";} else if (i == 1) {poly << "((x-" << xMin << ")/" << xMax << ")";}
@@ -195,22 +247,15 @@
             if (i < n) {poly << " + ";}
         }
         TString output = poly.str();
-
         return output;
     };
 
     TString SubbasisBernsteinString(unsigned n, float xMin, float xMax) {
-
         if (n == 0) {return TString("[0]");}
-        
         std::ostringstream poly;
-
         unsigned iLimit = n/2;
-
         for (unsigned i(0);i<iLimit+1;i++) {
-
             unsigned factorialPart = (unsigned)TMath::Factorial(n)/( TMath::Factorial(i)*TMath::Factorial(n-i) );
-
             poly << "[" << i << "]*";
             if (factorialPart > 1) {poly << factorialPart << ".0*";}
             if (i > 1) {poly << "pow((x - " << xMin << ")/" << xMax << "," << i << ")";} else if (i == 1) {poly << "((x-" << xMin << ")/" << xMax << ")";}
@@ -219,38 +264,29 @@
             if (i < iLimit) {poly << " + ";}
         }
         TString output = poly.str();
-
         return output;
     };
 
     TString ConvexPolyString(unsigned start, unsigned end, float xMin, float xMax) {
-
         std::ostringstream poly;
         for (unsigned i(start);i<end+1;i++) {
             poly << "[" << i-start << "]*pow(1-(x-" << xMin << ")/" << xMax << "," << i << ")";
             if (i != end) poly << " + ";
         }
         TString output = poly.str();
-
         return output;
     };
         
     TString ConvexPolyPairString(unsigned n, unsigned m, float xMin, float xMax) {
-
         std::ostringstream poly;
-        
         poly << "[0]*pow(1-(x-" << xMin << ")/" << xMax << ", " << n << ")";
         poly << " + [1]*pow(1-(x-" << xMin << ")/" << xMax << ", " << m << ")";
-
         TString output = poly.str();
-
         return output;
     };
 
     TString ATLASString(unsigned k) {
-
         std::ostringstream atlas;
-
         atlas << "pow( (1-pow(x/13000.0,1.0/3.0)), [0])";
         if (k==0){
             atlas << "*pow(x/13000.0,[1])";
@@ -262,14 +298,22 @@
             atlas << ")";
         }
         TString output = atlas.str();
+        return output;
+    };
 
+    TString ATLASPair(unsigned n, unsigned m) {
+        std::ostringstream atlas;
+        atlas << "pow((1-pow(x/13000.0,1.0/3.0)),[0])";
+        atlas << "*pow(x/13000.0,";
+        atlas << "[1]*pow(TMath::Log(x/13000.0)," << n << ")";
+        atlas << "[2]*pow(TMath::Log(x/13000.0)," << m << ")";
+        atlas << ")";
+        TString output = atlas.str();
         return output;
     };
 
     TString DijetString(unsigned k) {
-
         std::ostringstream dijet;
-
         dijet << "TMath::Exp(";
         if (k == 0) {
             dijet << " [0]";
@@ -281,11 +325,136 @@
         }
         dijet << " )";
         TString output = dijet.str();
+        return output;
+    };
 
+    TString DijetPair(unsigned n, unsigned m) {
+        std::ostringstream dijet;
+        dijet << "TMath::Exp(";
+        dijet << "[0]*pow(TMath::Log(x)," << n << ")";
+        dijet << " + [1]*pow(TMath::Log(x)," << m << ")";
+        dijet << ")";
+        TString output = dijet.str();
         return output;
     };
 
 
+
+
+
+
+
+
+
+
+
+
+    TString exponentialSumString(unsigned n) {
+        std::ostringstream expo;
+        expo << "exp( [0] + [1]*x )";
+        if (n>0) {
+            for (unsigned i(1);i<n+1;i++) {
+                expo << " + exp( [" << i*2 << "] + [" << i*2+1 << "]*x )";
+            }
+        }
+        TString output = expo.str();
+        return output;
+    }
+        
+    TString exponentialPoly(unsigned n) {
+        std::ostringstream expo;
+        expo << "exp( [0] ";
+        if (n > 0) {
+            for (unsigned i(1);i<n+1;i++) {
+                expo << " + [" << i << "]*pow(x," << i << ")";
+            }
+        }
+        expo << " )";
+        TString output = expo.str();
+        return output;
+    }
+
+    TString exponentialPowerLaw(unsigned n) {
+        std::ostringstream expo;
+        expo << "exp( [0]*pow(x,[1])";
+        if (n >0) {
+            for (unsigned i(1);i<n+1;i++){
+                expo << " + [" << i*2 << "]*pow(x,[" << i*2 + 1 << "])";
+            }
+        }
+        expo << " )";
+        TString output = expo.str();
+        return output;
+    }
+
+    TString powerLawSum(unsigned n) {
+        std::ostringstream power;
+        power << "[0]*pow(x,[1])";
+        if (n>0) {
+            for (unsigned i(0);i<n+1;i++) {
+                power << " + [" << i*2 << "]*pow(x,[" << i*2+1 << "])";
+            }
+        }
+        TString output = power.str();
+        return output;
+    }
+
+    TString powerLawPoly(unsigned n) {
+        std::ostringstream power;
+        power << "pow( ";
+        for (unsigned i(1);i<n;i++) {
+            if (i-1 != 0) {power << " + ";}
+            power << "[" << i-1 << "]*pow(x," << i << ")";
+        }
+        power << ", [" << n-1 << "])";
+        TString output = power.str();
+        return output;
+    }
+    
+    TString polyPowerLaw(unsigned n) {
+        std::ostringstream power;
+        power << "[0]";
+        if (n > 0) {
+            power << "*pow(x,-1.0*([1]";
+            for (unsigned i(2);i<n+1;i++) {
+                power << " + [" << i << "]*pow(x," << i-1 << ")";
+            }
+            power << "))";
+        }
+        TString output = power.str();
+        return output;
+    }
+
+    TString powerLawConvexBasis(unsigned n, unsigned m, float xMin, float xMax) {
+        if (m > n) {std::swap(n,m);}
+        std::ostringstream power;
+        power << "[2]*pow( x, -1.0*( ";
+        power << "[0]*pow(1-(x-" << xMin << ")/" << xMax << ", " << n << ")";
+        power << " + [1]*pow(1-(x-" << xMin << ")/" << xMax << ", " << m << ")";
+        power << " ) )";
+        TString output = power.str();
+        return output;
+    }
+
+    TString laurentString(unsigned n) {
+        std::ostringstream laurent;
+        laurent << "[0]";
+        if (n > 0) {
+            for (unsigned i(1);i<n+1;i++) {
+                laurent << " + [" << i << "]*pow(x,-" << i << ")";
+            }
+        }
+        TString output = laurent.str();
+        return output;
+    }
+
+    TString laurentPairString(unsigned n, unsigned m) {
+        std::ostringstream laurent;
+        laurent << "[0]*pow(x,-" << n << ")";
+        laurent << " + [1]*pow(x,-" << m << ")";
+        TString output = laurent.str();
+        return output;
+    }
 
 
 
