@@ -1,7 +1,7 @@
 #include <vector>
 #include<iostream>
 
-    void functionsLab() {
+    void functionsLab2() {
 
         TFile *output = new TFile("FitPlots/EBEB_BackgroundFits.root","RECREATE");
 
@@ -21,7 +21,7 @@
     //-------------------
         TCanvas c1("c1");
         c1.SetLogy();
-        c1.SetLogx();
+        //c1.SetLogx();
 
         h_EBEB->SetStats(kFALSE);
 
@@ -34,7 +34,7 @@
         EBEB_FitsLog << "Fits to EBEB set\n";
         EBEB_FitsLog << "----------------\n\n";
         EBEB_FitsLog << setw(12) << "Name" << setw(12) << "ChiSq" << setw(12) << "NDOF";
-        EBEB_FitsLog << setw(12) << "ChiSq/NDOF" << setw(12) << "S" << setw(12) << "B" << setw(12) <<"S/sqrt(S+B)";
+        EBEB_FitsLog << setw(12) << "ChiSq/NDOF"; 
         EBEB_FitsLog << setw(12) << "Num Param" << "    Formula String" << std::endl;
 
     //Polynomial fits
@@ -44,14 +44,10 @@
         for (unsigned i(0);i<3;i++) {
             powerBasis[i] = new TF1(Form("polyPB%d",i+1),Form("pol%d",i+1),230,910);
 
-            TF1* simFit = simultaneousFit(powerBasis[i],0,0,0);
-            h_EBEB->Fit(powerBasis[i]->GetName() + TString("_SF"),"QIRM");
             h_EBEB->Fit(Form("polyPB%d",i+1),"QRM");
-            std::pair<float,float> SB  = SignalBackgroundPair(powerBasis[i],simFit);
 
             EBEB_FitsLog << setw(12) << powerBasis[i]->GetName() << setw(12) << powerBasis[i]->GetChisquare() << setw(12) << powerBasis[i]->GetNDF();
             EBEB_FitsLog << setw(12) << powerBasis[i]->GetChisquare()/powerBasis[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
             EBEB_FitsLog << setw(12) << powerBasis[i]->GetNumberFreeParameters() << "    " << Form("pol%d",i+1) << std::endl;
         }
 
@@ -71,14 +67,10 @@
             TString functionString = SubbasisBernsteinString(i+1,230,910);
             bernsteinBasis[i] = new TF1(Form("Bern_D%d",i+1),functionString,230,910);
 
-            TF1* simFit = simultaneousFit(bernsteinBasis[i],0,0,0);
-            h_EBEB->Fit(bernsteinBasis[i]->GetName() + TString("_SF"),"QIRM");
             h_EBEB->Fit(Form("Bern_D%d",i+1),"QRM");
-            std::pair<float,float> SB  = SignalBackgroundPair(bernsteinBasis[i],simFit);
 
             EBEB_FitsLog << setw(12) << bernsteinBasis[i]->GetName() << setw(12) << bernsteinBasis[i]->GetChisquare() << setw(12) << bernsteinBasis[i]->GetNDF();
             EBEB_FitsLog << setw(12) << bernsteinBasis[i]->GetChisquare()/bernsteinBasis[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
             EBEB_FitsLog << setw(12) << bernsteinBasis[i]->GetNumberFreeParameters() << "    " << functionString << std::endl;
         }
 
@@ -89,35 +81,10 @@
         }
         c1.Print("FitPlots/Polys_BernsteinBasis.pdf");
 
-        //Convex basis pairs
-        EBEB_FitsLog << "\nPolynomials - Convex sub-basis" << std::endl;
-        std::vector<TF1*> convexPairs(45); 
-        unsigned count(0);
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<10;i++) {
-            for (unsigned j(0);j<10;j++) {
-                if ( j >= i ) continue;
-                convexPairs[count] = new TF1(Form("Convex_%d_%d",i,j),ConvexPolyPairString(i,j,230,910),230,910);
 
-                TF1* simFit = simultaneousFit(convexPairs[count],0,230,910);
-                h_EBEB->Fit(convexPairs[count]->GetName() + TString("_SF"),"QIRM");
-                h_EBEB->Fit(convexPairs[count]->GetName(),"QRM");
-                std::pair<float,float> SB  = SignalBackgroundPair(convexPairs[count],simFit);
 
-                EBEB_FitsLog << setw(12) << convexPairs[count]->GetName() << setw(12) << convexPairs[count]->GetChisquare() << setw(12) << convexPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << convexPairs[count]->GetChisquare()/convexPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
-                EBEB_FitsLog << setw(12) << convexPairs[count]->GetNumberFreeParameters() << "    " << ConvexPolyPairString(i,j,230,910) << std::endl;
-                count++;
-            }
-        }
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<convexPairs.size();i++){
-            convexPairs[i]->Draw("SAME");
-            functions.push_back(convexPairs[i]);
-        }
-        h_EBEB->Draw("EPSAME");
-        c1.Print("FitPlots/Polys_ConvexPairs.pdf");
+
+
 
     //Power Laws
         //Power Law Sum (includes single power law
@@ -127,14 +94,10 @@
             TString funcString =  powerLawSum(i);
             powerLawSums[i] = new TF1(Form("plSums%d",i),funcString,230,910);
 
-            TF1* simFit = simultaneousFit(powerLawSums[i],0,0,0);
-            h_EBEB->Fit(powerLawSums[i]->GetName() + TString("_SF"),"QRM");
             h_EBEB->Fit(Form("plSums%d",i),"QRM");
-            std::pair<float,float> SB  = SignalBackgroundPair(powerLawSums[i],simFit);
 
             EBEB_FitsLog << setw(12) << powerLawSums[i]->GetName() << setw(12) << powerLawSums[i]->GetChisquare() << setw(12) << powerLawSums[i]->GetNDF();
             EBEB_FitsLog << setw(12) << powerLawSums[i]->GetChisquare()/powerLawSums[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
             EBEB_FitsLog << setw(12) << powerLawSums[i]->GetNumberFreeParameters() << "    " << funcString << std::endl;
         }
         h_EBEB->Draw("EP");
@@ -152,14 +115,10 @@
             TString funcString = powerLawPoly(i+2);
             polyPowerLaws[i] = new TF1(Form("polyPL%d",i),funcString,230,910);
 
-            TF1* simFit = simultaneousFit(polyPowerLaws[i],0,0,0);
-            h_EBEB->Fit(polyPowerLaws[i]->GetName() + TString("_SF"),"QRM");
             h_EBEB->Fit(Form("polyPL%d",i),"QRM");
-            std::pair<float,float> SB  = SignalBackgroundPair(polyPowerLaws[i],simFit);
 
             EBEB_FitsLog << setw(12) << polyPowerLaws[i]->GetName() << setw(12) << polyPowerLaws[i]->GetChisquare() << setw(12) << polyPowerLaws[i]->GetNDF();
             EBEB_FitsLog << setw(12) << polyPowerLaws[i]->GetChisquare()/polyPowerLaws[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
             EBEB_FitsLog << setw(12) << polyPowerLaws[i]->GetNumberFreeParameters() << "    " << funcString << std::endl;
         }
         h_EBEB->Draw("EP");
@@ -169,37 +128,6 @@
             functions.push_back(polyPowerLaws[i]);
         }
         c1.Print("FitPlots/PolynomialPowerLaw.pdf");
-        
-        //Polynomial power law pairs
-        EBEB_FitsLog << "\nPower law with polynomial basis pairs in place of x" << std::endl;
-        std::vector<TF1*> powerLawPolyPairs(45);
-        count = 0;
-        for (unsigned i(0);i<10;i++) {
-            for (unsigned j(0);j<10;j++) {
-                if ( j >= i ) continue;
-                TString funcString = powerLawPolyPair(i,j);
-                powerLawPolyPairs[count] = new TF1(Form("PLPolyPair_%d_%d",i,j),funcString,230,910);
-
-//                TF1* simFit = simultaneousFit(powerLawPolyPairs[count],0,230,910);
-//                h_EBEB->Fit(powerLawPolyPairs[count]->GetName() + TString("_SF"),"QRM");
-                h_EBEB->Fit(Form("PLPolyPair_%d_%d",i,j),"QRM");
-//                std::pair<float,float> SB  = SignalBackgroundPair(powerLawPolyPairs[count],simFit);
-
-                EBEB_FitsLog << setw(12) << powerLawPolyPairs[count]->GetName() << setw(12) << powerLawPolyPairs[count]->GetChisquare();
-                EBEB_FitsLog << setw(12) << powerLawPolyPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << powerLawPolyPairs[count]->GetChisquare()/powerLawPolyPairs[count]->GetNDF();
-//                EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
-                EBEB_FitsLog << setw(12) << powerLawPolyPairs[count]->GetNumberFreeParameters() << "    " << funcString << std::endl;
-                count++;
-            }
-        }
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<powerLawPolyPairs.size();i++){
-            powerLawPolyPairs[i]->Draw("SAME");
-            functions.push_back(powerLawPolyPairs[i]);
-        }
-        h_EBEB->Draw("EPSAME");
-        c1.Print("FitPlots/PowerLawPolyPairs.pdf");
 
         //Poly-power Law
         EBEB_FitsLog << "\nPolynomial-power law (Poly in the power)" << std::endl;
@@ -208,14 +136,10 @@
             TString funcString = polyPowerLaw(i+1);
             polyPowerLawsAlt[i] = new TF1(Form("polyPLAlt%d",i+1),funcString,230,910);
 
-            TF1* simFit = simultaneousFit(polyPowerLawsAlt[i],0,0,0);
-            h_EBEB->Fit(polyPowerLawsAlt[i]->GetName() + TString("_SF"),"QRM");
             h_EBEB->Fit(Form("polyPLAlt%d",i+1),"QRM");
-            std::pair<float,float> SB  = SignalBackgroundPair(polyPowerLawsAlt[i],simFit);
 
             EBEB_FitsLog << setw(12) << polyPowerLawsAlt[i]->GetName() << setw(12) << polyPowerLawsAlt[i]->GetChisquare() << setw(12) << polyPowerLawsAlt[i]->GetNDF();
             EBEB_FitsLog << setw(12) << polyPowerLawsAlt[i]->GetChisquare()/polyPowerLawsAlt[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
             EBEB_FitsLog << setw(12) << polyPowerLawsAlt[i]->GetNumberFreeParameters() << "    " << funcString << std::endl;
         }
         h_EBEB->Draw("EP");
@@ -226,69 +150,6 @@
         }
         c1.Print("FitPlots/PolynomialPowerLawAlt.pdf");
 
-        //Poly-power Law pairs
-        EBEB_FitsLog << "\nPower law with polynomial basis pairs in place of x" << std::endl;
-        std::vector<TF1*> polyPowerLawPairs(45);
-        count = 0;
-        for (unsigned i(0);i<10;i++) {
-            for (unsigned j(0);j<10;j++) {
-                if ( j >= i ) continue;
-                TString funcString = polyPowerLawPair(i,j);
-                polyPowerLawPairs[count] = new TF1(Form("polyPLPair_%d_%d",i,j),funcString,230,910);
-
-//                TF1* simFit = simultaneousFit(polyPowerLawPairs[count],0,230,910);
-//                h_EBEB->Fit(polyPowerLawPairs[count]->GetName() + TString("_SF"),"QRM");
-                h_EBEB->Fit(Form("polyPLPair_%d_%d",i,j),"QRM");
-                std::pair<float,float> SB  = SignalBackgroundPair(polyPowerLawPairs[count],simFit);
-
-                EBEB_FitsLog << setw(12) << polyPowerLawPairs[count]->GetName() << setw(12) << polyPowerLawPairs[count]->GetChisquare();
-                EBEB_FitsLog << setw(12) << polyPowerLawPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << polyPowerLawPairs[count]->GetChisquare()/polyPowerLawPairs[count]->GetNDF();
-//                EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
-                EBEB_FitsLog << setw(12) << polyPowerLawPairs[count]->GetNumberFreeParameters() << "    " << funcString << std::endl;
-                count++;
-            }
-        }
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<polyPowerLawPairs.size();i++){
-            polyPowerLawPairs[i]->Draw("SAME");
-            functions.push_back(polyPowerLawPairs[i]);
-        }
-        h_EBEB->Draw("EPSAME");
-        c1.Print("FitPlots/PolyPowerLawPairs.pdf");
-
-
-        //Convex-polynomial-power Law
-        EBEB_FitsLog << "\nPower law with 2D 'Convex' polynomial in power" << std::endl;
-        std::vector<TF1*> powerLawPolyConvex(45);
-        count = 0;
-        for (unsigned i(0);i<10;i++) {
-            for (unsigned j(0);j<10;j++) {
-                if ( j >= i ) continue;
-                TString funcString = powerLawConvexBasis(i,j,230,910);
-                powerLawPolyConvex[count] = new TF1(Form("PolyConvex_%d_%d",i,j),funcString,230,910);
-
-                TF1* simFit = simultaneousFit(powerLawPolyConvex[count],0,230,910);
-                h_EBEB->Fit(powerLawPolyConvex[count]->GetName() + TString("_SF"),"QRM");
-                h_EBEB->Fit(Form("PolyConvex_%d_%d",i,j),"QRM");
-                std::pair<float,float> SB  = SignalBackgroundPair(powerLawPolyConvex[count],simFit);
-
-                EBEB_FitsLog << setw(12) << powerLawPolyConvex[count]->GetName() << setw(12) << powerLawPolyConvex[count]->GetChisquare();
-                EBEB_FitsLog << setw(12) << powerLawPolyConvex[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << powerLawPolyConvex[count]->GetChisquare()/powerLawPolyConvex[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
-                EBEB_FitsLog << setw(12) << powerLawPolyConvex[count]->GetNumberFreeParameters() << "    " << funcString << std::endl;
-                count++;
-            }
-        }
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<powerLawPolyConvex.size();i++){
-            powerLawPolyConvex[i]->Draw("SAME");
-            functions.push_back(powerLawPolyConvex[i]);
-        }
-        h_EBEB->Draw("EPSAME");
-        c1.Print("FitPlots/PowerLawPolyConvexPairs.pdf");
-
     //Exponentials
         //Exponential Sum
         EBEB_FitsLog << "\nExponential Sums" << std::endl;
@@ -297,14 +158,10 @@
             TString funcString =  exponentialSumString(i);
             expoSums[i] = new TF1(Form("ExpoSum%d",i),funcString,230,910);
 
-            TF1* simFit = simultaneousFit(expoSums[i],0,0,0);
-            h_EBEB->Fit(expoSums[i]->GetName() + TString("_SF"),"QRM");
             h_EBEB->Fit(Form("ExpoSum%d",i),"QRM");
-            std::pair<float,float> SB  = SignalBackgroundPair(expoSums[i],simFit);
 
             EBEB_FitsLog << setw(12) << expoSums[i]->GetName() << setw(12) << expoSums[i]->GetChisquare() << setw(12) << expoSums[i]->GetNDF();
             EBEB_FitsLog << setw(12) << expoSums[i]->GetChisquare()/expoSums[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
             EBEB_FitsLog << setw(12) << expoSums[i]->GetNumberFreeParameters() << "    " << funcString << std::endl;
         }
         h_EBEB->Draw("EP");
@@ -322,14 +179,10 @@
             TString funcString = exponentialPoly(i+1);
             expoPolys[i] = new TF1(Form("ExpoPoly%d",i+1),funcString,230,910);
 
-            TF1* simFit = simultaneousFit(expoPolys[i],0,0,0);
-            h_EBEB->Fit(expoPolys[i]->GetName() + TString("_SF"),"QRM");
             h_EBEB->Fit(Form("ExpoPoly%d",i+1),"QRM");
-            std::pair<float,float> SB  = SignalBackgroundPair(expoPolys[i],simFit);
 
             EBEB_FitsLog << setw(12) << expoPolys[i]->GetName() << setw(12) << expoPolys[i]->GetChisquare() << setw(12) << expoPolys[i]->GetNDF();
             EBEB_FitsLog << setw(12) << expoPolys[i]->GetChisquare()/expoPolys[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
             EBEB_FitsLog << setw(12) << expoPolys[i]->GetNumberFreeParameters() << "    " << funcString << std::endl;
         }
         h_EBEB->Draw("EP");
@@ -340,37 +193,6 @@
         }
         c1.Print("FitPlots/ExpoPolys.pdf");
 
-        //Exponential poly pair
-        EBEB_FitsLog << "\nLaurent series pairs" << std::endl;
-        std::vector<TF1*> exponentialPolyPairs(45);
-        count = 0;
-        for (unsigned i(0);i<10;i++) {
-            for (unsigned j(0);j<10;j++) {
-                if ( j >= i ) continue;
-                TString funcString = exponentialPolyPair(i,j);
-                exponentialPolyPairs[count] = new TF1(Form("ExpPolPair_%d_%d",i,j),funcString,230,910);
-
-                TF1* simFit = simultaneousFit(exponentialPolyPairs[count],0,230,910);
-                h_EBEB->Fit(exponentialPolyPairs[count]->GetName() + TString("_SF"),"QRM");
-                h_EBEB->Fit(Form("ExpPolPair_%d_%d",i,j),"QRM");
-                std::pair<float,float> SB  = SignalBackgroundPair(exponentialPolyPairs[count],simFit);
-
-                EBEB_FitsLog << setw(12) << exponentialPolyPairs[count]->GetName() << setw(12) << exponentialPolyPairs[count]->GetChisquare();
-                EBEB_FitsLog << setw(12) << exponentialPolyPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << exponentialPolyPairs[count]->GetChisquare()/exponentialPolyPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
-                EBEB_FitsLog << setw(12) << exponentialPolyPairs[count]->GetNumberFreeParameters() << "    " << funcString << std::endl;
-                count++;
-            }
-        }
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<exponentialPolyPairs.size();i++){
-            exponentialPolyPairs[i]->Draw("SAME");
-            functions.push_back(exponentialPolyPairs[i]); 
-        }
-        h_EBEB->Draw("EPSAME");
-        c1.Print("FitPlots/ExponentialPolyPairs.pdf");
-
         //Exponential Power Law Sum
         EBEB_FitsLog << "\nExponentiated Power Law" << std::endl;
         std::vector<TF1*> expoPowers(4);
@@ -378,14 +200,10 @@
             TString funcString = exponentialPowerLaw(i);
             expoPowers[i] = new TF1(Form("ExpoPow%d",i),funcString,230,910);
 
-            TF1* simFit = simultaneousFit(expoPowers[i],0,0,0);
-            h_EBEB->Fit(expoPowers[i]->GetName() + TString("_SF"),"QRM");
             h_EBEB->Fit(Form("ExpoPow%d",i),"QRM");
-            std::pair<float,float> SB  = SignalBackgroundPair(expoPowers[i],simFit);
 
             EBEB_FitsLog << setw(12) << expoPowers[i]->GetName() << setw(12) << expoPowers[i]->GetChisquare() << setw(12) << expoPowers[i]->GetNDF();
             EBEB_FitsLog << setw(12) << expoPowers[i]->GetChisquare()/expoPowers[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
             EBEB_FitsLog << setw(12) << expoPowers[i]->GetNumberFreeParameters() << "    " << funcString << std::endl;
         }
         h_EBEB->Draw("EP");
@@ -400,10 +218,7 @@
         TString expTimesPowString = "exp([0]+[1])*pow(x,[2])";
         TF1 *expTimesPow = new TF1("ExpTimesPow",expTimesPowString,230,910);
 
-        TF1* expTimesPowSimFit = simultaneousFit(expTimesPow,0,0,0);
-        h_EBEB->Fit(expTimesPow->GetName()+TString("_SF"),"QRM");
         h_EBEB->Fit("ExpTimesPow","QRM");
-        std::pair<float,float> expTimesPowSB = SignalBackgroundPair(expTimesPow,expTimesPowSimFit);
 
         h_EBEB->Draw("EP");
         expTimesPow->Draw("SAME");
@@ -413,7 +228,6 @@
         EBEB_FitsLog << setw(12) << expTimesPow->GetName() << setw(12) << expTimesPow->GetChisquare();
         EBEB_FitsLog << setw(12) << expTimesPow->GetNDF();
         EBEB_FitsLog << setw(12) << expTimesPow->GetChisquare()/expTimesPow->GetNDF();
-        EBEB_FitsLog << setw(12) << expTimesPowSB.first << setw(12) << expTimesPowSB.second << setw(12) << expTimesPowSB.first/sqrt(expTimesPowSB.first+expTimesPowSB.second);
         EBEB_FitsLog << setw(12) << expTimesPow->GetNumberFreeParameters();
         EBEB_FitsLog << "    " << expTimesPowString << std::endl;
         functions.push_back(expTimesPow);
@@ -438,34 +252,6 @@
         }
         c1.Print("FitPlots/Laurents.pdf");
 
-        //Laurent Series Pairs
-        EBEB_FitsLog << "\nLaurent series pairs" << std::endl;
-        std::vector<TF1*> laurentPairs(45);
-        count = 0;
-        for (unsigned i(0);i<10;i++) {
-            for (unsigned j(0);j<10;j++) {
-                if ( j >= i ) continue;
-                TString funcString = laurentPairString(i,j);
-                laurentPairs[count] = new TF1(Form("LPair_%d_%d",i,j),funcString,230,910);
-                h_EBEB->Fit(Form("LPair_%d_%d",i,j),"QRM");
-                EBEB_FitsLog << setw(12) << laurentPairs[count]->GetName() << setw(12) << laurentPairs[count]->GetChisquare();
-                EBEB_FitsLog << setw(12) << laurentPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << laurentPairs[count]->GetChisquare()/laurentPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << laurentPairs[count]->GetNumberFreeParameters() << "    " << funcString << std::endl;
-                count++;
-            }
-        }
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<laurentPairs.size();i++){
-            laurentPairs[i]->Draw("SAME");
-            functions.push_back(laurentPairs[i]); 
-        }
-        h_EBEB->Draw("EPSAME");
-        c1.Print("FitPlots/LaurentPairs.pdf");
-
-
-
-
     //ATLAS Function
         //N parameters
         EBEB_FitsLog << "\nATLAS functions" << std::endl;
@@ -473,12 +259,7 @@
         for (unsigned k(0);k<atlasFunctions.size();k++){
             atlasFunctions[k] = new TF1(Form("Atlas%d",k),ATLASString(k),230,910);
 
-            TF1* simFit = simultaneousFit(atlasFunctions[k],0,0,13000);
-            h_EBEB->Fit(atlasFunctions[k]->GetName() + TString("_SF"),"IRM");
             h_EBEB->Fit(Form("Atlas%d",k),"QRM");
-
-            std::pair<float,float> SB  = SignalBackgroundPair(atlasFunctions[k],simFit);
-            std::cout << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second) << std::endl;
 
             EBEB_FitsLog << setw(12) << atlasFunctions[k]->GetName() << setw(12) << atlasFunctions[k]->GetChisquare() << setw(12) << atlasFunctions[k]->GetNDF();
             EBEB_FitsLog << setw(12) << atlasFunctions[k]->GetChisquare()/atlasFunctions[k]->GetNDF();
@@ -491,31 +272,6 @@
             functions.push_back(atlasFunctions[k]); 
         }
         c1.Print("FitPlots/ATLASFunctions.pdf");
-
-        //ATLAS Pair search
-        EBEB_FitsLog << "\nATLAS Pairs" << std::endl;
-        std::vector<TF1*> atlasPairs(45);
-        count = 0;
-        for (unsigned i(0);i<10;i++) {
-            for (unsigned j(0);j<10;j++) {
-                if ( j >= i ) continue;
-                TString funcString = ATLASPair(i,j);
-                atlasPairs[count] = new TF1(Form("AtPair_%d_%d",i,j),funcString,230,910);
-                h_EBEB->Fit(Form("AtPair_%d_%d",i,j),"QRM");
-                EBEB_FitsLog << setw(12) << atlasPairs[count]->GetName() << setw(12) << atlasPairs[count]->GetChisquare();
-                EBEB_FitsLog << setw(12) << atlasPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << atlasPairs[count]->GetChisquare()/atlasPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << atlasPairs[count]->GetNumberFreeParameters() << "    " << funcString << std::endl;
-                count++;
-            }
-        }
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<atlasPairs.size();i++){
-            atlasPairs[i]->Draw("SAME");
-            functions.push_back(atlasPairs[i]); 
-        }
-        h_EBEB->Draw("EPSAME");
-        c1.Print("FitPlots/ATLASPairs.pdf");
 
     //Dijet Function
         //N parameters
@@ -536,31 +292,6 @@
         }
         c1.Print("FitPlots/DijetFunctions.pdf");
 
-        //Dijet Pair search
-        EBEB_FitsLog << "\nDijet Pairs" << std::endl;
-        std::vector<TF1*> dijetPairs(45);
-        count = 0;
-        for (unsigned i(0);i<10;i++) {
-            for (unsigned j(0);j<10;j++) {
-                if (j >= i) continue;
-                TString funcString = DijetPair(i,j);
-                dijetPairs[count] = new TF1(Form("DijetPair_%d_%d",i,j),funcString,230,910);
-                h_EBEB->Fit(Form("DijetPair_%d_%d",i,j),"QRM");
-                EBEB_FitsLog << setw(12) << dijetPairs[count]->GetName() << setw(12) << dijetPairs[count]->GetChisquare();
-                EBEB_FitsLog << setw(12) << dijetPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << dijetPairs[count]->GetChisquare()/dijetPairs[count]->GetNDF();
-                EBEB_FitsLog << setw(12) << dijetPairs[count]->GetNumberFreeParameters() << "    " << funcString << std::endl;
-                count++;
-            }
-        }
-        h_EBEB->Draw("EP");
-        for (unsigned i(0);i<dijetPairs.size();i++){
-            dijetPairs[i]->Draw("SAME");
-            functions.push_back(dijetPairs[i]); 
-        }
-        h_EBEB->Draw("EPSAME");
-        c1.Print("FitPlots/DijetPairs.pdf");
-
     //From analysis note
         //Benchmark 
         TString benchmarkString = "pow( x, [0] + [1]*log(x) )";
@@ -576,10 +307,62 @@
         EBEB_FitsLog << "    " << benchmarkString << std::endl;
         functions.push_back(benchmark);
 
+    //From Monte Carlo studies
+        //Laurent
+        TString lPairString = laurentPairString(5,6);
+        TF1* laurentMCPair = new TF1("LPairMC",lPairString,230,910);
+        h_EBEB->Fit("LPairMC","RM");
+
+        EBEB_FitsLog << "\nLaurent Pair chosen from MC" << std::endl;
+        EBEB_FitsLog << setw(12) << laurentMCPair->GetName() << setw(12) << laurentMCPair->GetChisquare();
+        EBEB_FitsLog << setw(12) << laurentMCPair->GetNDF();
+        EBEB_FitsLog << setw(12) << laurentMCPair->GetChisquare()/laurentMCPair->GetNDF() << setw(12) << laurentMCPair->GetNumberFreeParameters();
+        EBEB_FitsLog << "    " << laurentPairString(5,6) << std::endl;
+        functions.push_back(laurentMCPair);
+
+        //ATLAS
+        TString atlasPairString = ATLASPair(6,7);
+        TF1* ATLASMCPair = new TF1("AtlasPairMC",atlasPairString,230,910);
+        h_EBEB->Fit("AtlasPairMC","RM");
+
+        EBEB_FitsLog << "\nLaurent Pair chosen from MC" << std::endl;
+        EBEB_FitsLog << setw(12) << ATLASMCPair->GetName() << setw(12) << ATLASMCPair->GetChisquare();
+        EBEB_FitsLog << setw(12) << ATLASMCPair->GetNDF();
+        EBEB_FitsLog << setw(12) << ATLASMCPair->GetChisquare()/ATLASMCPair->GetNDF() << setw(12) << ATLASMCPair->GetNumberFreeParameters();
+        EBEB_FitsLog << "    " << atlasPairString << std::endl;
+        functions.push_back(ATLASMCPair);
+        
+        //Dijet
+        TString dijetPairString = DijetPair(1,2);
+        TF1* DijetMCPair = new TF1("DijetPairMC",dijetPairString,230,910);
+        h_EBEB->Fit("DijetPairMC","RM");
+
+        EBEB_FitsLog << "\nLaurent Pair chosen from MC" << std::endl;
+        EBEB_FitsLog << setw(12) << DijetMCPair->GetName() << setw(12) << DijetMCPair->GetChisquare();
+        EBEB_FitsLog << setw(12) << DijetMCPair->GetNDF();
+        EBEB_FitsLog << setw(12) << DijetMCPair->GetChisquare()/DijetMCPair->GetNDF() << setw(12) << DijetMCPair->GetNumberFreeParameters();
+        EBEB_FitsLog << "    " << dijetPairString << std::endl;
+        functions.push_back(DijetMCPair);
+ 
+        
+
+        //Expo poly
+
+
+
+
+
+
+
+
+
+
+        
+//Ranking and analysis
     //Ranking by ChiSq/NDOF and separating by number of parameters
         std::vector<TF1*> goodFits;
         for (unsigned i(0);i<functions.size();i++) {
-            if (functions[i]->GetChisquare()/functions[i]->GetNDF() >= benchmark->GetChisquare()/benchmark->GetNDF()) continue;
+            if (functions[i]->GetChisquare()/functions[i]->GetNDF() >= 0.8) continue;
             float funcChiSqPerDof = functions[i]->GetChisquare()/functions[i]->GetNDF();
             unsigned insertionIndex(0);
             for (unsigned j(0);j<goodFits.size();j++) {
@@ -588,29 +371,30 @@
             }
             goodFits.insert( goodFits.begin() + insertionIndex, functions[i] );
         }
-
-        EBEB_FitsLog << "\n\nSummary of 2/3 parameter fits that perform better than benchmark" << std::endl;
-        for (unsigned j(2);j<4;j++) {
-            EBEB_FitsLog << setw(12) << j << "-parameter functions:" << std::endl;
-            count = 0;
-            for (unsigned i(0);i<goodFits.size();i++) {
-                if (goodFits[i]->GetNumberFreeParameters() != j) continue;
-                count++;
-                EBEB_FitsLog << setw(18) << goodFits[i]->GetName() << setw(12) << goodFits[i]->GetChisquare();
-                EBEB_FitsLog << setw(12) << goodFits[i]->GetNDF();
-                EBEB_FitsLog << setw(12) << goodFits[i]->GetChisquare()/goodFits[i]->GetNDF();
-                EBEB_FitsLog << setw(12) << goodFits[i]->GetNumberFreeParameters() << std::endl;
-            }
-            std::cout << "There are " << count << " " << j << "-parameter functions with ChiSq/DOF < Benchmark" << std::endl;
-        }
-
-        //.root output
         output->cd();
         h_EBEB->Write();
         for (unsigned i(0);i<goodFits.size();i++) {
             goodFits[i]->Write();
         }
         output->Close();
+
+        EBEB_FitsLog << "\n\nSummary of 2/3 parameter fits that perform better than threshold" << std::endl;
+        for (unsigned j(2);j<5;j++) {
+            EBEB_FitsLog << setw(12) << j << "-parameter functions:" << std::endl;
+            EBEB_FitsLog << setw(18) << "Name" << setw(12) << "ChiSq/DOF";
+            EBEB_FitsLog << setw(12) << "Num Param" << "  Formula" << std::endl;
+            count = 0;
+            for (unsigned i(0);i<goodFits.size();i++) {
+                if (goodFits[i]->GetNumberFreeParameters() != j) continue;
+                count++;
+                EBEB_FitsLog << setw(18) << goodFits[i]->GetName();
+                EBEB_FitsLog << setw(12) << goodFits[i]->GetChisquare()/goodFits[i]->GetNDF();
+                EBEB_FitsLog << setw(12) << goodFits[i]->GetNumberFreeParameters();
+                EBEB_FitsLog << "  " << goodFits[i]->GetExpFormula("CLING") << std::endl;
+            }
+            EBEB_FitsLog << "There are " << count << " " << j << "-parameter functions with ChiSq/DOF < 0.8" << std::endl;
+        }
+
 
         //Comparisons of benchmark to set of 2param and 3param with better ChiSq/DOF
         h_EBEB->Draw("EP");
@@ -625,6 +409,8 @@
         benchmark->Draw("SAME");
         c1.Print("FitPlots/TwoParameterFits.pdf");
         
+ 
+        //Sim fits of best 3 parameter functions
         h_EBEB->Draw("EP");
         std::vector<TF1*> bestThreeParams;
         for (unsigned i(0);i<goodFits.size();i++) {
@@ -635,43 +421,14 @@
         }
         benchmark->SetLineColor(kRed);
         benchmark->Draw("SAME");
-        c1.Print("FitPlots/ThreeParameterFits.pdf");
-        
+        c1.Print("FitPlots/ThreeParameterFits.pdf");      
 
-    //Signal strength
-        //Test
-        TF1* testSimFit = simultaneousFit(goodFits[0],0,0,13000);
-        testSimFit->SetLineColor(kBlue);
-        TF1* benchSimFit = simultaneousFit(benchmark,0,0,0);
-
-        h_EBEB->Fit(goodFits[0]->GetName() + TString("_SF"),"IRM");
-        h_EBEB->Fit(benchmark->GetName() + TString("_SF"), "IRM");
-        h_EBEB->Draw("EP");
-
-        testSimFit->Draw("SAME");
-        benchSimFit->Draw("SAME");
-
-        benchmark->SetLineColor(kRed);
-        benchmark->SetLineStyle(2);
-        benchmark->Draw("SAME");
-
-        goodFits[0]->SetLineColor(kBlue);
-        goodFits[0]->SetLineStyle(2);
-        goodFits[0]->Draw("SAME");
-
-        std::pair<float,float> benchSB = SignalBackgroundPair(benchmark,simultaneousFit(benchmark,0,0,0));
-        std::pair<float,float> testSB  = SignalBackgroundPair(goodFits[0],testSimFit);
-        std::cout << setw(12) << benchSB.first << setw(12) << benchSB.second << setw(12) << benchSB.first/sqrt(benchSB.first+benchSB.second) << std::endl;
-        std::cout << setw(12) << testSB.first << setw(12) << testSB.second << setw(12) << testSB.first/sqrt(testSB.first+testSB.second) << std::endl;
-
-        c1.Print("FitPlots/SimFitTest.pdf");
-
+    //Sim fit
         //Sim fits of best 2 parameter functions
         std::vector<TF1*> bestTwoParamSimFits;
-        EBEB_FitsLog << "Simultaneous fits of the best 2-parameter functions" << std::endl;
-        EBEB_FitsLog << setw(18) << "Name" << setw(12) << "ChiSq/DOF" << setw(12) << "S" << setw(12) << "B" << setw(12) << "S/sqrt(S+B)";
+        EBEB_FitsLog << "\nSimultaneous fits of the best 2-parameter functions" << std::endl;
+        EBEB_FitsLog << setw(18) << "Name" << setw(12) << "ChiSq/DOF";
         EBEB_FitsLog << setw(12) << "Num Param" << "    Formula" << std::endl;
-        h_EBEB->Draw("EP");
         for (unsigned i(0);i<bestTwoParams.size();i++) {
 
             //Convex ones actually suck
@@ -683,37 +440,57 @@
 
             TF1* simFit = simultaneousFit(bestTwoParams[i],0,0,sqrtS);
             bestTwoParamSimFits.push_back(simFit);
-            h_EBEB->Fit(bestTwoParams[i]->GetName(),"IRM");
             h_EBEB->Fit(bestTwoParams[i]->GetName() + TString("_SF"),"IRM");
-            std::pair<float,float> SB = SignalBackgroundPair(bestTwoParams[i],simFit);
-            EBEB_FitsLog << setw(18) << bestTwoParams[i]->GetName(); 
-            EBEB_FitsLog << setw(12) << bestTwoParams[i]->GetChisquare()/bestTwoParams[i]->GetNDF();
-            EBEB_FitsLog << setw(12) << SB.first << setw(12) << SB.second << setw(12) << SB.first/sqrt(SB.first+SB.second);
-            EBEB_FitsLog << setw(12) << bestTwoParams[i]->GetNumberFreeParameters() << "    " << funcString << std::endl;
+            EBEB_FitsLog << setw(18) << simFit->GetName(); 
+            EBEB_FitsLog << setw(12) << simFit->GetChisquare()/simFit->GetNDF();
+            EBEB_FitsLog << setw(12) << simFit->GetNumberFreeParameters() << "    " << simFit->GetExpFormula("CLING") << std::endl;
         }
-        EBEB_FitsLog << setw(18) << benchmark->GetName(); 
-        EBEB_FitsLog << setw(12) << benchmark->GetChisquare()/benchmark->GetNDF();
-        EBEB_FitsLog << setw(12) << benchSB.first << setw(12) << benchSB.second << setw(12) << benchSB.first/sqrt(benchSB.first+benchSB.second);
-        EBEB_FitsLog << setw(12) << benchmark->GetNumberFreeParameters() << "    " << funcString << std::endl;
 
-        leg = new TLegend(0.6,0.7,0.9,0.9);
+        h_EBEB->Draw("EP");
+        leg = new TLegend(0.6,0.6,0.9,0.9);
         for (unsigned i(0);i<bestTwoParamSimFits.size();i++) {
             bestTwoParamSimFits[i]->Draw("SAME");
             bestTwoParamSimFits[i]->SetLineColor(i+1);
             leg->AddEntry(bestTwoParamSimFits[i]->GetName(),bestTwoParamSimFits[i]->GetName(),"l");
         }
-        benchSimFit->SetLineColor(1);
-        benchSimFit->SetLineStyle(2);
-        leg->AddEntry(benchSimFit->GetName(),benchSimFit->GetName(),"l");
-        benchSimFit->Draw("SAME");
         leg->Draw();
-
-
-
         c1.Print("FitPlots/SimFitBestTwoParam.pdf");
 
+ 
+        EBEB_FitsLog << "\nSimultaneous fits of the best 3-parameter functions" << std::endl;
+        EBEB_FitsLog << setw(18) << "Name" << setw(12) << "ChiSq/DOF";
+        EBEB_FitsLog << setw(12) << "Num Param" << "    Formula" << std::endl;
+        std::vector<TF1*> bestThreeParamSimFits;
+        for (unsigned i(0);i<bestThreeParams.size();i++) {
+            TString name =  bestThreeParams[i]->GetName();
+            std::cout << name << std::endl;
+            float sqrtS(0.0);
+            if (name.Contains("Atlas")) {
+                sqrtS = 13000.0;
+            }
+            TF1* simFit = simultaneousFit(bestThreeParams[i],0,0,sqrtS);
 
-        std::cout << "There were " << functions.size() << " TF1s tested" << std::endl;
+            bestThreeParamSimFits.push_back(simFit);
+            h_EBEB->Fit(name + TString("_SF"),"IRM");
+            EBEB_FitsLog << setw(18) << simFit->GetName(); 
+            EBEB_FitsLog << setw(12) << simFit->GetChisquare()/simFit->GetNDF();
+            EBEB_FitsLog << setw(12) << simFit->GetNumberFreeParameters() << "    " << simFit->GetExpFormula("CLING") << std::endl;
+        }
+
+        h_EBEB->Draw("EP");
+        leg2 = new TLegend(0.6,0.6,0.9,0.9);
+        for (unsigned i(0);i<bestThreeParamSimFits.size();i++) {
+            bestThreeParamSimFits[i]->Draw("SAME");
+            bestThreeParamSimFits[i]->SetLineColor(i+1);
+            leg2->AddEntry(bestThreeParamSimFits[i]->GetName(),bestThreeParamSimFits[i]->GetName(),"l");
+        }
+        leg2->Draw();
+        c1.Print("FitPlots/SimFitBestThreeParam.pdf");
+
+
+
+
+
 
     }//End of main
 
@@ -764,7 +541,7 @@
     TString ConvexPolyString(unsigned start, unsigned end, float xMin, float xMax) {
         std::ostringstream poly;
         for (unsigned i(start);i<end+1;i++) {
-            poly << "[" << i-start << "]*pow(1-(x-" << xMin << ")/" << xMax-xMin << "," << i << ")";
+            poly << "fabs([" << i-start << "])*pow(1-(x-" << xMin << ")/" << xMax-xMin << "," << i << ")";
             if (i != end) poly << " + ";
         }
         TString output = poly.str();
@@ -773,8 +550,8 @@
         
     TString ConvexPolyPairString(unsigned n, unsigned m, float xMin, float xMax) {
         std::ostringstream poly;
-        poly << "[0]*pow(1-(x-" << xMin << ")/" << xMax-xMin << ", " << n << ")";
-        poly << " + [1]*pow(1-(x-" << xMin << ")/" << xMax-xMin << ", " << m << ")";
+        poly << "fabs([0])*pow(1-(x-" << xMin << ")/" << xMax-xMin << ", " << n << ")";
+        poly << " + fabs([1])*pow(1-(x-" << xMin << ")/" << xMax-xMin << ", " << m << ")";
         TString output = poly.str();
         return output;
     };
@@ -944,8 +721,8 @@
         if (m > n) {std::swap(n,m);}
         std::ostringstream power;
         power << "[2]*pow( x, -1.0*( ";
-        power << "[0]*pow(1-(x-" << xMin << ")/" << xMax-xMax << ", " << n << ")";
-        power << " + [1]*pow(1-(x-" << xMin << ")/" << xMax-xMax << ", " << m << ")";
+        power << "fabs([0])*pow(1-(x-" << xMin << ")/" << xMax-xMax << ", " << n << ")";
+        power << " + fabs([1])*pow(1-(x-" << xMin << ")/" << xMax-xMax << ", " << m << ")";
         power << " ) )";
         TString output = power.str();
         return output;
@@ -1012,13 +789,6 @@
         return simFitFunction;
     }
 
-
-    std::pair<float,float> SignalBackgroundPair(TF1* background, TF1* bgAndSignal) {
-        float B = background(750.0);
-        float S = bgAndSignal(750.0) - background(750.0);
-        std::pair<float,float> SB(S,B);
-        return SB;
-    }
 
 
 
