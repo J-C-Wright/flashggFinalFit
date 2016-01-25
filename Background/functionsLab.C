@@ -1,7 +1,7 @@
 #include <vector>
 #include<iostream>
 
-    void functionsLab2() {
+    void functionsLab() {
 
         TFile *output = new TFile("FitPlots/EBEB_BackgroundFits.root","RECREATE");
 
@@ -333,7 +333,7 @@
         functions.push_back(ATLASMCPair);
         
         //Dijet
-        TString dijetPairString = DijetPair(1,2);
+        TString dijetPairString = DijetPair(2,1);
         TF1* DijetMCPair = new TF1("DijetPairMC",dijetPairString,230,910);
         h_EBEB->Fit("DijetPairMC","RM");
 
