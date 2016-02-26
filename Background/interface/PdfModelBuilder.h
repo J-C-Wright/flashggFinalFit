@@ -62,13 +62,16 @@ class PdfModelBuilder {
     RooAbsPdf* getExponential(string prefix, int order);
     RooAbsPdf* getExponentialSingle(string prefix, int order);
     RooAbsPdf* getLaurentSeries(string prefix, int order);
-    RooAbsPdf* getDijet(string prefix,int order);
+//    RooAbsPdf* getDijet(string prefix,int order);
     RooAbsPdf* getDijetSimple(string prefix,int order);
     RooAbsPdf* getAtlas(string prefix,int order);
     RooAbsPdf* getBernstein(string prefix,int order);
     RooAbsPdf* getExpow(string prefix,int order);
     RooAbsPdf* getKeysPdf(string prefix);
     RooAbsPdf* getPdfFromFile(string &prefix);
+    RooAbsPdf* getLaurentSeriesFromN(string prefix, int order, int start);
+    RooAbsPdf* getATLASSeriesFromN(string prefix, int order, int start);
+    RooAbsPdf* getExponentiatedPolynomial(string prefix, int order, int start);
 
   private:
    
