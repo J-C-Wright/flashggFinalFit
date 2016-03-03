@@ -615,7 +615,7 @@ vector<string> diphotonCats_;
   desc.add_options()
     ("help,h",                                                                                  "Show help")
     ("infilename,i", po::value<string>(&fileName),                                              "In file name")
-    ("ncats,c", po::value<int>(&ncats)->default_value(5),                                       "Number of categories")
+    ("ncats,c", po::value<int>(&ncats)->default_value(2),                                       "Number of categories")
     ("datfile,d", po::value<string>(&datfile)->default_value("dat/fTest.dat"),                  "Right results to datfile for BiasStudy")
     ("outDir,D", po::value<string>(&outDir)->default_value("plots/fTest"),                      "Out directory for plots")
     ("analysisType,a", po::value<string>(&analysisType_)->default_value("cic2"),                 "What kind of analysis you are rinning (cic, cic2...)... <Eventually this might also be able to directly populate the diphotonCats ?>")
@@ -701,13 +701,14 @@ if (saveMultiPdf){
     namingMap.insert(pair<string,string>("LaurentFrom5","lauS5"));
     namingMap.insert(pair<string,string>("ExpoPoly","expoPoly"));
 	// store results here
-
+    std::cout << "DEBUG" << std::endl;
 	FILE *resFile ;
 	resFile = fopen(Form("%s/fTestResults.txt",outDir.c_str()),"w");
 	vector<map<string,int> > choices_vec;
 	vector<map<string,std::vector<int> > > choices_envelope_vec;
 	vector<map<string,RooAbsPdf*> > pdfs_vec;
 
+    std::cout << "DEBUG" << std::endl;
 	PdfModelBuilder pdfsModel;
 	
 	double upperEnvThreshold = 0.1; // upper threshold on delta(chi2) to include function in envelope (looser than truth function)
@@ -715,21 +716,33 @@ if (saveMultiPdf){
 	fprintf(resFile,"Truth Model & d.o.f & $\\Delta NLL_{N+1}$ & $p(\\chi^{2}>\\chi^{2}_{(N\\rightarrow N+1)})$ \\\\\n");
 	fprintf(resFile,"\\hline\n");
 
+    std::cout << "DEBUG" << std::endl;
 	for (int cat=startingCategory; cat<ncats; cat++){
+        std::cout << "DEBUG2 " << cat << std::endl;
 		string catname;
 		catname = Form("%s",diphotonCats_[cat].c_str());
 		RooRealVar *mass;
-    	int nBinsForMass=4000.;
+    	int nBinsForMass=4000;
+        std::cout << "DEBUG2 " << cat << std::endl;
 		if(diphotonCats_[cat]=="EBEB") 
 		{
+        std::cout << "DEBUG2A " << cat << std::endl;
 			mass = new RooRealVar (Form("mgg%s",catname.c_str()),Form("mgg%s",catname.c_str()), 230, 10000);
+        std::cout << "DEBUG2A " << cat << std::endl;
 			nBinsForMass=4000;
+        std::cout << "DEBUG2A " << cat << std::endl;
 		}else if(diphotonCats_[cat]=="EBEE") {
+        std::cout << "DEBUG2B " << cat << std::endl;
 			mass = new RooRealVar (Form("mgg%s",catname.c_str()),Form("mgg%s",catname.c_str()), 320, 10000);
+        std::cout << "DEBUG2B " << cat << std::endl;
 			nBinsForMass=3400;
 		}
-		mass->setBins(nBinsForMass);
+        std::cout << "DEBUG2 " << cat << std::endl;
+        std::cout << "Before" << std::endl;
+		//mass->setBins(nBinsForMass); //Segmentation fault here
+        std::cout << "After" << std::endl;
 
+        std::cout << "DEBUG2 " << cat << std::endl;
     	TNtuple *inNT;
 		if (isData_){
 			inNT = (TNtuple*)inFile->Get(Form("tree_data_%s_%s",analysisType_.c_str(),diphotonCats_[cat].c_str()));
@@ -737,16 +750,7 @@ if (saveMultiPdf){
 			inNT = (TNtuple*)inFile->Get(Form("tree_data_%s_%s",analysisType_.c_str(),diphotonCats_[cat].c_str()));
 		}
 
-		if (verbose) std::cout << "[INFO]  considering nTuple " << inNT->GetName() << std::endl;
-			map<string,int> choices;
-			map<string,std::vector<int> > choices_envelope;
-			map<string,RooAbsPdf*> pdfs;
-			map<string,RooAbsPdf*> allPdfs;
-			RooDataSet *dataFull = new RooDataSet( Form("data_%s",catname.c_str()),"data_unbinned" ,inNT, RooArgSet(*mass) );
- 		if (dataFull){
-			std::cout << "[INFO] opened data for  "  << dataFull->GetName()  <<" - " << dataFull <<std::endl;
-			if (verbose) dataFull->Print("V");
-		}
+        std::cout << "DEBUG2 " << cat << std::endl;
 		if(diphotonCats_[cat]=="EBEE"){  
 			mass->setRange(320,1600); //FIXME Need a more configurable method to set range
 			nBinsForMass=64;//roughly binning of 20 GeV acoording to EXO-15-004
@@ -754,20 +758,45 @@ if (saveMultiPdf){
 			mass->setRange(230,1600); //FIXME Need a more configurable method to set range binning 20 GeV
 			nBinsForMass=69; //roughly binning of 20 GeV according to EXO-15-004
 		}
+
+        std::cout << "DEBUG2 " << cat << std::endl;
+		if (verbose) std::cout << "[INFO]  considering nTuple " << inNT->GetName() << std::endl;
+        std::cout << "DEBUG2 " << cat << std::endl;
+        map<string,int> choices;
+        std::cout << "DEBUG2 " << cat << std::endl;
+        map<string,std::vector<int> > choices_envelope;
+        std::cout << "DEBUG2 " << cat << std::endl;
+        map<string,RooAbsPdf*> pdfs;
+        std::cout << "DEBUG2 " << cat << std::endl;
+        map<string,RooAbsPdf*> allPdfs;
+        std::cout << "DEBUG2 Before " << cat << std::endl;
+        RooDataSet *dataFull = new RooDataSet( Form("data_%s",catname.c_str()),"data_unbinned" ,inNT, RooArgSet(*mass) );
+        std::cout << "DEBUG2 " << cat << std::endl;
+ 		if (dataFull){
+			std::cout << "[INFO] opened data for  "  << dataFull->GetName()  <<" - " << dataFull <<std::endl;
+            std::cout << "DEBUG2B " << cat << std::endl;
+			if (verbose) dataFull->Print("V");
+            std::cout << "DEBUG2B " << cat << std::endl;
+		}
+        std::cout << "DEBUG2 After" << cat << std::endl;
 		mass->setBins(nBinsForMass);
 		pdfsModel.setObsVar(mass);
 
+        std::cout << "DEBUG2 " << cat << std::endl;
 		RooArgList storedPdfs("store");
 		fprintf(resFile,"\\multicolumn{4}{|c|}{\\textbf{Category %d}} \\\\\n",cat);
 		fprintf(resFile,"\\hline\n");
 
+        std::cout << "DEBUG2 " << cat << std::endl;
 		double MinimimNLLSoFar=1e10;
 		int simplebestFitPdfIndex = 0;
 
+        std::cout << "DEBUG2 " << cat << std::endl;
 		// Standard F-Test to find the truth functions
 		for (vector<string>::iterator funcType=functionClasses.begin(); 
 				funcType!=functionClasses.end(); funcType++){
 
+            std::cout << "DEBUG3" << std::endl;
 			double thisNll=0.; double prevNll=0.; double chi2=0.; double prob=0.; 
 			int order=0; int prev_order=0; int cache_order=0;
 
@@ -777,6 +806,7 @@ if (saveMultiPdf){
 
 			int counter =0;
 			while (prob<0.05 && order < 5){ //FIXME should be around order 3
+                std::cout << "DEBUG4" << std::endl;
 			  std::cout << " SCZ In while loop: cat=" << cat << " funcType->c_str()=" << funcType->c_str() << " prob=" << prob << " order=" << order << std::endl;
 				RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
 				if (!bkgPdf){

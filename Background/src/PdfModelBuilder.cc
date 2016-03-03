@@ -441,6 +441,7 @@ RooAbsPdf* PdfModelBuilder::getAtlas(string prefix, int order){
 //Additions from MC background studies on MC
 
 RooAbsPdf* PdfModelBuilder::getLaurentSeriesFromN(string prefix, int order, int start){
+    std::cout << "Debug: Laurent From N" << std::endl;
 
     if (order < 1) {
         cerr << "[WARNING] --  needs to be at least of order 1" << endl;
@@ -473,6 +474,8 @@ RooAbsPdf* PdfModelBuilder::getLaurentSeriesFromN(string prefix, int order, int 
 }
                     
 RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int start) {
+
+    std::cout << "Debug: ATLAS From N" << std::endl;
 
     if (order < 1){
         cerr << "[WARNING] --  needs to be at least of order 1" << endl;
@@ -513,6 +516,7 @@ RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int st
 
 
 RooAbsPdf* PdfModelBuilder::getExponentiatedPolynomial(string prefix, int order, int start) {
+    std::cout << "Debug: Exponentiated Polynomial" << std::endl;
 
     string formula = "";
     string formula_exp = "";
