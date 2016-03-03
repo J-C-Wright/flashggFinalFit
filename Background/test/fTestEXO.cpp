@@ -59,14 +59,18 @@ TRandom3 *RandomGen = new TRandom3();
 
 RooAbsPdf* getPdf(PdfModelBuilder &pdfsModel, string type, int order, const char* ext=""){
   if (type=="DijetSimple") return pdfsModel.getDijetSimple(Form("%s_dijetsimple%d",ext,order),order); 
-  else if (type=="Dijet") return pdfsModel.getDijet(Form("%s_dijet%d",ext,order),order); 
-  else if (type=="VVdijet") return pdfsModel.getVVdijet(Form("%s_vvdijet%d",ext,order),order); 
+  //else if (type=="Dijet") return pdfsModel.getDijet(Form("%s_dijet%d",ext,order),order); 
+  //else if (type=="VVdijet") return pdfsModel.getVVdijet(Form("%s_vvdijet%d",ext,order),order); 
   else if (type=="Atlas") return pdfsModel.getAtlas(Form("%s_atlas%d",ext,order),order); 
   else if (type=="Expow") return pdfsModel.getExpow(Form("%s_expow%d",ext,order),order); 
   else if (type=="Chebychev") return pdfsModel.getChebychev(Form("%s_cheb%d",ext,order),order); 
   else if (type=="Exponential") return pdfsModel.getExponentialSingle(Form("%s_exp%d",ext,order),order); 
   else if (type=="PowerLaw") return pdfsModel.getPowerLawSingle(Form("%s_pow%d",ext,order),order); 
   else if (type=="Laurent") return pdfsModel.getLaurentSeries(Form("%s_lau%d",ext,order),order); 
+  //New Additions from MC
+  else if (type=="AtlasFrom6") return pdfsModel.getATLASSeriesFromN(Form("%s_atlasS6O%d",ext,order),order,6);
+  else if (type=="LaurentFrom5") return pdfsModel.getLaurentSeriesFromN(Form("%s_lauS5O%d",ext,order),order,5);
+  else if (type=="ExpoPoly") return pdfsModel.getExponentiatedPolynomial(Form("%s_expoPoly%d",ext,order),order,0);
   else {
     cerr << "[ERROR] -- getPdf() -- type " << type << " not recognised." << endl;
     return NULL;
@@ -686,21 +690,27 @@ if (saveMultiPdf){
 		} */
 	}
 	vector<string> functionClasses;
-    functionClasses.push_back("Dijet");
+//    functionClasses.push_back("Dijet");
 //    functionClasses.push_back("Exponential");
 //	functionClasses.push_back("Expow");
     functionClasses.push_back("PowerLaw");
     functionClasses.push_back("Laurent");
 	functionClasses.push_back("Atlas");
-	functionClasses.push_back("VVdijet");
+//	functionClasses.push_back("VVdijet");
+    functionClasses.push_back("AtlasFrom6");
+    functionClasses.push_back("LaurentFrom5");
+    functionClasses.push_back("ExpoPoly");
 	map<string,string> namingMap;
- 	namingMap.insert(pair<string,string>("Dijet","dijet"));
+// 	namingMap.insert(pair<string,string>("Dijet","dijet"));
 //	namingMap.insert(pair<string,string>("Exponential","exp"));
-	namingMap.insert(pair<string,string>("VVdijet","vvdijet"));
+//	namingMap.insert(pair<string,string>("VVdijet","vvdijet"));
 //	namingMap.insert(pair<string,string>("Expow","expow"));
 	namingMap.insert(pair<string,string>("PowerLaw","pow"));
 	namingMap.insert(pair<string,string>("Laurent","lau"));
 	namingMap.insert(pair<string,string>("Atlas","atlas"));
+    namingMap.insert(pair<string,string>("AtlasFrom6","atlasS6"));
+    namingMap.insert(pair<string,string>("LaurentFrom5","lauS5"));
+    namingMap.insert(pair<string,string>("ExpoPoly","expoPoly"));
 	// store results here
 
 	FILE *resFile ;
