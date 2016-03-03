@@ -441,7 +441,6 @@ RooAbsPdf* PdfModelBuilder::getAtlas(string prefix, int order){
 //Additions from MC background studies on MC
 
 RooAbsPdf* PdfModelBuilder::getLaurentSeriesFromN(string prefix, int order, int start){
-    std::cout << "Debug: Laurent From N" << std::endl;
 
     if (order < 1) {
         cerr << "[WARNING] --  needs to be at least of order 1" << endl;
@@ -475,8 +474,6 @@ RooAbsPdf* PdfModelBuilder::getLaurentSeriesFromN(string prefix, int order, int 
                     
 RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int start) {
 
-    std::cout << "Debug: ATLAS From N" << std::endl;
-
     if (order < 1){
         cerr << "[WARNING] --  needs to be at least of order 1" << endl;
         return NULL;
@@ -494,6 +491,8 @@ RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int st
 
     dependents->add(*obs_var);
 
+    std::cout << "Making ATLAS series from " << start << std::endl;
+
     for (int i(0);i<order;i++) {
 		string label =  Form("%s_F%dlog%d",prefix.c_str(),start,i);
     	params.insert(pair<string,RooRealVar*>(label, new RooRealVar(label.c_str(),label.c_str(),-2.,-100.0,100.)));
@@ -505,9 +504,11 @@ RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int st
 			formula_exp += Form(" + @%d*(TMath::Power(log(@0/13000),%d))",i+1,i+start);
 		}
 		dependents->add(*params[label]);
+        std::cout << formula_exp << std::endl;
 	}
 
   	formula = Form("TMath::Max(1e-50,TMath::Power(1-TMath::Power(@0/13000,1/3),@1)*TMath::Power(@0/13000,%s))",formula_exp.c_str()) ; 
+    std::cout << formula << std::endl;
   	RooGenericPdf* atlasFromN = new RooGenericPdf(prefix.c_str(), prefix.c_str(), formula.c_str(),*dependents );
 	atlasFromN->Print();
 	return atlasFromN;
@@ -516,7 +517,11 @@ RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int st
 
 
 RooAbsPdf* PdfModelBuilder::getExponentiatedPolynomial(string prefix, int order, int start) {
-    std::cout << "Debug: Exponentiated Polynomial" << std::endl;
+
+    if (order < 1){
+        cerr << "[WARNING] --  needs to be at least of order 1" << endl;
+        return NULL;
+    }
 
     string formula = "";
     string formula_exp = "";
@@ -540,7 +545,7 @@ RooAbsPdf* PdfModelBuilder::getExponentiatedPolynomial(string prefix, int order,
         dependents->add(*params[label]);
     }
 
-    formula = Form("TMath::Exp( %s )",formula_exp.c_str());
+    formula = Form("TMath::Exp(%s)",formula_exp.c_str());
     RooGenericPdf* expoPoly = new RooGenericPdf(prefix.c_str(),prefix.c_str(),formula.c_str(),*dependents);
     expoPoly->Print();
     return expoPoly;
