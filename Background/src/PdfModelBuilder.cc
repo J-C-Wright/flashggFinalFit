@@ -501,7 +501,7 @@ RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int st
 			formula_exp = Form("@2*(TMath::Power(log(@0/13000),%d))",start);
 		}
 		else{
-			formula_exp += Form(" + @%d*(TMath::Power(log(@0/13000),%d))",i+1,i+start);
+			formula_exp += Form(" + @%d*(TMath::Power(log(@0/13000),%d))",i+2,i+start);
 		}
 		dependents->add(*params[label]);
         std::cout << formula_exp << std::endl;
@@ -530,7 +530,7 @@ RooAbsPdf* PdfModelBuilder::getExponentiatedPolynomial(string prefix, int order,
 
     dependents->add(*obs_var);
 
-    for (int i(0);i<order;i++) {
+    for (int i(0);i<order+1;i++) {
 
         string label = Form("%s_F%dExpPol%d",prefix.c_str(),start,i+start);
         params.insert(pair<string,RooRealVar*>(label, new RooRealVar(label.c_str(), label.c_str(),-10,10)));
