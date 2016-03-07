@@ -491,6 +491,10 @@ RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int st
 
     dependents->add(*obs_var);
 
+    string coeff1 =  Form("%s_coeff1",prefix.c_str());
+    params.insert(pair<string,RooRealVar*>(coeff1, new RooRealVar(coeff1.c_str(),coeff1.c_str(),10. ,-300.0,300.)));
+    dependents->add(*params[coeff1]);
+
     std::cout << "Making ATLAS series from " << start << std::endl;
 
     for (int i(0);i<order;i++) {
