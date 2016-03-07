@@ -369,10 +369,12 @@ void plot(RooRealVar *mass, RooAbsPdf *pdf, RooDataSet *data, string name,vector
  
   *prob = getGoodnessOfFit(mass,pdf,data,name, gofToys);
   RooPlot *plot = mass->frame();
-  mass->setRange("unblindReg_1",0,500);
+  mass->setRange("unblindReg_1",0,700);
+  mass->setRange("unblindReg_2",800,910);
   //mass->setRange("unblindReg_2",150,180);
   if (BLIND) {
     data->plotOn(plot,Binning(nBinsForMass),CutRange("unblindReg_1"));
+    data->plotOn(plot,Binning(nBinsForMass),CutRange("unblindReg_2"));
 //    data->plotOn(plot,CutRange("unblindReg_1"));
 
     //data->plotOn(plot,Binning(nBinsForMass),CutRange("unblindReg_2"));
@@ -381,6 +383,16 @@ void plot(RooRealVar *mass, RooAbsPdf *pdf, RooDataSet *data, string name,vector
   }
   else data->plotOn(plot,Binning(nBinsForMass));
   //else data->plotOn(plot);
+
+/*
+  mass->setRange("unblindReg_1",100,110);
+  mass->setRange("unblindReg_2",150,180);
+  if (BLIND) {
+    data->plotOn(plot,Binning(80),CutRange("unblindReg_1"));
+    data->plotOn(plot,Binning(80),CutRange("unblindReg_2"));
+    data->plotOn(plot,Binning(80),Invisible());
+*/
+
 
  // data->plotOn(plot,Binning(80));
   TCanvas *canv = new TCanvas();
@@ -425,10 +437,12 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
 		///canv->Print(Form("test_LC.pdf"));
 
   mass->setRange("unblindReg_1",0,500);
+  mass->setRange("unblindReg_2",800,910);
 //  int nBinsForMass=mass->getBinning().numBins() ;
   if (BLIND) {
 //  data->plotOn(plot,Binning(nBinsForMass),CutRange("unblindReg_1"));
   data->plotOn(plot,CutRange("unblindReg_1"));
+  data->plotOn(plot,CutRange("unblindReg_2"));
     //data->plotOn(plot,Binning(80),CutRange("unblindReg_2"));
   //  data->plotOn(plot,Binning(nBinsForMass),Invisible());
     data->plotOn(plot,Invisible());
@@ -475,11 +489,13 @@ void plot(RooRealVar *mass, map<string,RooAbsPdf*> pdfs, RooDataSet *data, strin
   leg->SetLineColor(0);
   RooPlot *plot = mass->frame();
   mass->setRange("unblindReg_1",0,500);
+  mass->setRange("unblindReg_2",800,910);
  
   //mass->setRange("unblindReg_2",150,180);
   if (BLIND) {
 //    data->plotOn(plot,Binning(nBinsForMass),CutRange("unblindReg_1"));
     data->plotOn(plot,CutRange("unblindReg_1"));
+    data->plotOn(plot,CutRange("unblindReg_2"));
     //data->plotOn(plot,Binning(nBinsForMass),CutRange("unblindReg_2"));
   //  data->plotOn(plot,Binning(nBinsForMass),Invisible());
   }
