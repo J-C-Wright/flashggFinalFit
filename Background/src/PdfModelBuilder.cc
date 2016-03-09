@@ -456,9 +456,9 @@ RooAbsPdf* PdfModelBuilder::getLaurentSeriesFromN(string prefix, int order, int 
 
     dependents->add(*obs_var);
 
-    for (int i(0);i<order;i++) {
+    for (int i(0);i<order+1;i++) {
         string label = Form("%s_%dLaur%d",prefix.c_str(),start,i+start);
-        params.insert(pair<string,RooRealVar*>(label, new RooRealVar(label.c_str(),label.c_str(),0.00001,0.00009)));
+        params.insert(pair<string,RooRealVar*>(label, new RooRealVar(label.c_str(),label.c_str(),0.00001,0.9999)));
         if (i == 0) {
             formula  = Form("@1*TMath::Power(@0,-%d)",start);
         }else{
@@ -497,7 +497,7 @@ RooAbsPdf* PdfModelBuilder::getATLASSeriesFromN(string prefix, int order, int st
 
     std::cout << "Making ATLAS series from " << start << std::endl;
 
-    for (int i(0);i<order;i++) {
+    for (int i(0);i<order+1;i++) {
 		string label =  Form("%s_F%dlog%d",prefix.c_str(),start,i);
     	params.insert(pair<string,RooRealVar*>(label, new RooRealVar(label.c_str(),label.c_str(),-2.,-100.0,100.)));
 
@@ -537,7 +537,10 @@ RooAbsPdf* PdfModelBuilder::getExponentiatedPolynomial(string prefix, int order,
     for (int i(0);i<order+1;i++) {
 
         string label = Form("%s_F%dExpPol%d",prefix.c_str(),start,i+start);
-        params.insert(pair<string,RooRealVar*>(label, new RooRealVar(label.c_str(), label.c_str(),-10,10)));
+
+        float limit = 10.0/TMath::Power(100.0,i);
+
+        params.insert(pair<string,RooRealVar*>(label, new RooRealVar(label.c_str(), label.c_str(),-limit,limit)));
 
         if (i==0 && start == 0){
             formula_exp = "@1";
