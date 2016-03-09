@@ -709,13 +709,13 @@ if (saveMultiPdf){
 //    functionClasses.push_back("Dijet");
 //    functionClasses.push_back("Exponential");
 //	functionClasses.push_back("Expow");
+    functionClasses.push_back("AtlasFrom6");
+    functionClasses.push_back("LaurentFrom5");
+    functionClasses.push_back("ExpoPoly");
     functionClasses.push_back("PowerLaw");
     functionClasses.push_back("Laurent");
 	functionClasses.push_back("Atlas");
 //	functionClasses.push_back("VVdijet");
-    functionClasses.push_back("AtlasFrom6");
-    functionClasses.push_back("LaurentFrom5");
-    functionClasses.push_back("ExpoPoly");
 	map<string,string> namingMap;
 // 	namingMap.insert(pair<string,string>("Dijet","dijet"));
 //	namingMap.insert(pair<string,string>("Exponential","exp"));
@@ -778,8 +778,8 @@ if (saveMultiPdf){
 			mass->setRange(320,1600); //FIXME Need a more configurable method to set range
 			nBinsForMass=64;//roughly binning of 20 GeV acoording to EXO-15-004
 		}else if(diphotonCats_[cat]=="EBEB") {
-			mass->setRange(230,1600); //FIXME Need a more configurable method to set range binning 20 GeV
-			nBinsForMass=69; //roughly binning of 20 GeV according to EXO-15-004
+			mass->setRange(230,910); //FIXME Need a more configurable method to set range binning 20 GeV
+			nBinsForMass=34; //roughly binning of 20 GeV according to EXO-15-004
 		}
 		mass->setBins(nBinsForMass);
 		pdfsModel.setObsVar(mass);

@@ -1,12 +1,11 @@
 cat=EBEB
-truth=Atlas:2:atlas2
+truth=Atlas:1:atlas1
 truth=AtlasFrom6:1:atlasS61
 truth=ExpoPoly:1:expoPoly1
 truth=Laurent:1:lau1
 truth=LaurentFrom5:1:lauS51
 truth=PowerLaw:1:pow1
 paul=Atlas:1:atlas1
-paul=Atlas:2:atlas2
 paul=ExpoPoly:1:expoPoly1
 paul=Laurent:1:lau1
 paul=LaurentFrom5:1:lauS51
