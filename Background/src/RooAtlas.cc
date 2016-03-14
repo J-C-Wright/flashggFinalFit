@@ -1,5 +1,7 @@
 
-
+#include "TSystem.h"
+#include "TROOT.h"
+#include "TMath.h"
 
 #include "RooFit.h"
 
@@ -12,13 +14,9 @@
 #include "RooAbsReal.h"
 #include "RooArgList.h"
 
-#include "TSystem.h"
-#include "TROOT.h"
-#include "TMath.h"
+#include "Math/SpecFuncMathMore.h"
 
 using namespace std;
-
-//ClassImp(RooAtlas);
 
 RooAtlas::RooAtlas(const char *name, const char *title, RooAbsReal &x, const RooArgList &paramList, unsigned N):
     RooAbsPdf(name,title),
@@ -91,7 +89,7 @@ Double_t RooAtlas::analyticalIntegral(Int_t code, const char* rangeName) const {
     return 0;
 }
 
-Double_t RooAtlas::indefiniteAtlasIntegral(double xVal){
+Double_t RooAtlas::indefiniteAtlasIntegral(double xVal) const {
 
     double polyLog(0.0);
     for (unsigned order(0);order<=N_;order++) {
@@ -110,5 +108,7 @@ Double_t RooAtlas::indefiniteAtlasIntegral(double xVal){
                                                                pow(xVal,1.0/3.0) ))/(1+polyLog);
     return ret;
 }
+
+
 
 

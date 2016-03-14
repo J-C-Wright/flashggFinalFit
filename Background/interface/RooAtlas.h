@@ -14,10 +14,10 @@ class RooAtlas : public RooAbsPdf {
         virtual TObject* clone(const char* newname) const { return new RooAtlas(*this,newname); }
         virtual ~RooAtlas(){};
 
-        Int_t getAnalyticalIntegral(RooArgSet& allVars, RooArgSet& analVars, const char* rangeName=0) const ;
-        Double_t analyticalIntegral(Int_t code, const char* rangeName=0) const ;
+        Int_t getAnalyticalIntegral(RooArgSet& allVars, RooArgSet& analVars, const char* rangeName=0) const;
+        Double_t analyticalIntegral(Int_t code, const char* rangeName=0) const;
 
-        Double_t indefiniteAtlasIntegral(double xVal);
+        Double_t indefiniteAtlasIntegral(double xVal) const;
 
     protected:
         RooRealProxy x_;
