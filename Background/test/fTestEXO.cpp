@@ -651,22 +651,44 @@ vector<string> diphotonCats_;
 		map<string,RooAbsPdf*> pdfs;
 		map<string,RooAbsPdf*> allPdfs;
 		string catname;
-	  catname = Form("%s",diphotonCats_[cat].c_str());
+        catname = Form("%s",diphotonCats_[cat].c_str());
 		RooDataSet *dataFull = new RooDataSet( "dataFull","dataFull", inNT , RooArgSet(*mass) );
 
+//Testing out how to make a log log hist of the mass
+
+        TH1F* testHist = new TH1F("logMassHist","logMassHist",nBinsForMass,log((double)mass->getMin()),log((double)mass->getMax()));
+
+        for (unsigned i=0;i<dataFull->numEntries();i++) {
+            const RooArgSet* set = dataFull->get(i);
+            mass = (RooRealVar*)set->find(mass->GetName());
+            testHist->Fill(log(mass->getVal()));
+        }
+        for (unsigned i=0;i<testHist->GetNbinsX();i++){
+            if (testHist->GetBinContent(i) != 0){
+                testHist->SetBinContent(i,log(testHist->GetBinContent(i)));
+            }else{
+                testHist->SetBinContent(i,0);
+            }
+            cout << setw(6) << i << setw(12) << testHist->GetBinContent(i) << endl;
+        }
+
+        RooRealVar *logMass = new RooRealVar("logMass","logMass",log((double)mass->getMin()),log((double)mass->getMax()));
+        logMass->setBins(nBinsForMass);
+
  		if (dataFull){
-		std::cout << "[INFO] opened data for  "  << dataFull->GetName()  <<" - " << dataFull <<std::endl;
-		if (verbose) dataFull->Print("V");
+            std::cout << "[INFO] opened data for  "  << dataFull->GetName()  <<" - " << dataFull <<std::endl;
+            if (verbose) dataFull->Print("V");
 		}
 	 	
-		//TCanvas *t = new TCanvas();
+		TCanvas *t = new TCanvas();
+        testHist->Draw();
+        t->Print("testHist.pdf");
+
 		//RooPlot *frame = mass->frame();
 		//dataFull->plotOn(frame);
 
-
 		RooDataSet *data;
 		string thisdataBinned_name;
-		thisdataBinned_name =Form("roohist_data_mass_%s",diphotonCats_[cat].c_str());
 		thisdataBinned_name =Form("roohist_data_mass_%s",diphotonCats_[cat].c_str());
 		RooDataHist thisdataBinned(thisdataBinned_name.c_str(),"data",*mass,*dataFull);
 		data = (RooDataSet*)&thisdataBinned;
