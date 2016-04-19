@@ -368,6 +368,18 @@ RooAbsPdf* PdfModelBuilder::getExponentialSingle(string prefix, int order){
 }
 
 
+RooAbsPdf* PdfModelBuilder::getDijetFromLogPdf(RooAbsPdf &pdf, const RooDataSet *logData ) {
+
+    RooArgList *coeffList = new RooArgList();
+
+
+    RooAbsPdf* dijet
+
+}
+
+
+
+
 void PdfModelBuilder::addBkgPdf(string type, int nParams, string name, bool cache){
  
   if (!obs_var_set){
