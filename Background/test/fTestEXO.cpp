@@ -69,6 +69,16 @@ RooAbsPdf* getPdf(PdfModelBuilder &pdfsModel, string type, int order, const char
   }
 }
 
+RooAbsPdf* getPdfFromLog(PdfModelBuilder &pdfsModel, string type, RooAbsPdf &pdf, const RooDataSet* logData) {
+    if (type == "Dijet") return pdfsModel.getDijetFromLogPdf(pdf,logData);
+    else {
+        cerr << "[ERROR] -- getPdfFromLog() -- type " << type << " not recognised." << endl;
+        return NULL;
+    }
+}
+
+
+
 void runFit(RooAbsPdf *pdf, RooDataSet *data, double *NLL, int *stat_t, int MaxTries){
 
 	int ntries=0;
@@ -392,6 +402,7 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
 }
 
 void plot(RooRealVar *mass, map<string,RooAbsPdf*> pdfs, RooDataSet *data, string name, vector<string> diphotonCats_, int cat, int bestFitPdf=-1){
+    cout << "starting plot function" << endl;
   
   int color[7] = {kBlue,kRed,kMagenta,kGreen+1,kOrange+7,kAzure+10,kBlack};
   TCanvas *canv = new TCanvas();
@@ -435,6 +446,7 @@ void plot(RooRealVar *mass, map<string,RooAbsPdf*> pdfs, RooDataSet *data, strin
   canv->SaveAs(Form("%s.pdf",name.c_str()));
   canv->SaveAs(Form("%s.png",name.c_str()));
   delete canv;
+  cout << "end of plot function" << endl;
 }
 
 void transferMacros(TFile *inFile, TFile *outFile){
@@ -626,7 +638,7 @@ vector<string> diphotonCats_;
 
 	PdfModelBuilder pdfsModel;
 	//RooRealVar *mass = (RooRealVar*)inWS->var("mass");
-  RooRealVar *mass = new RooRealVar ("mass","mass", 300, 1600);
+    RooRealVar *mass = new RooRealVar ("mass","mass", 300, 1600);
 	pdfsModel.setObsVar(mass);
 	double upperEnvThreshold = 0.1; // upper threshold on delta(chi2) to include function in envelope (looser than truth function)
 
@@ -641,9 +653,14 @@ vector<string> diphotonCats_;
 		} else {
 			inNT = (TNtuple*)inFile->Get(Form("tree_data_%s_%s",analysisType_.c_str(),diphotonCats_[cat].c_str()));
 		}
-	if(diphotonCats_[cat]=="EBEE") mass->setRange(320,1600); //FIXME Need a more configurable method to set range
-	if(diphotonCats_[cat]=="EBEB") mass->setRange(230,1600); //FIXME Need a more configurable method to set range
-	mass->setBins(nBinsForMass);
+
+	if(diphotonCats_[cat]=="EBEE") {
+        mass->setRange(320,1600); //FIXME Need a more configurable method to set range
+        nBinsForMass=64;//roughly binning of 20 GeV acoording to EXO-15-004
+    }else if(diphotonCats_[cat]=="EBEB") {
+        mass->setRange(230,1600); //FIXME Need a more configurable method to set range
+        nBinsForMass=69; //roughly binning of 20 GeV according to EXO-15-004
+    }
 
 	if (verbose) std::cout << "[INFO]  considering nTuple " << inNT->GetName() << std::endl;
 		map<string,int> choices;
@@ -654,36 +671,28 @@ vector<string> diphotonCats_;
         catname = Form("%s",diphotonCats_[cat].c_str());
 		RooDataSet *dataFull = new RooDataSet( "dataFull","dataFull", inNT , RooArgSet(*mass) );
 
-//Testing out how to make a log log hist of the mass
+    //Testing out how to make a log log hist of the mass
 
-        TH1F* testHist = new TH1F("logMassHist","logMassHist",nBinsForMass,log((double)mass->getMin()),log((double)mass->getMax()));
+        TH1F* loglogHist = new TH1F("logMassHist","logMassHist",nBinsForMass,log((double)mass->getMin()),log((double)mass->getMax()));
 
         for (unsigned i=0;i<dataFull->numEntries();i++) {
             const RooArgSet* set = dataFull->get(i);
             mass = (RooRealVar*)set->find(mass->GetName());
-            testHist->Fill(log(mass->getVal()));
+            loglogHist->Fill(log(mass->getVal()));
         }
-        for (unsigned i=0;i<testHist->GetNbinsX();i++){
-            if (testHist->GetBinContent(i) != 0){
-                testHist->SetBinContent(i,log(testHist->GetBinContent(i)));
+        for (unsigned i=0;i<loglogHist->GetNbinsX();i++){
+            if (loglogHist->GetBinContent(i) != 0){
+                loglogHist->SetBinContent(i,log(loglogHist->GetBinContent(i)));
             }else{
-                testHist->SetBinContent(i,0);
+                loglogHist->SetBinContent(i,0);
             }
-            cout << setw(6) << i << setw(12) << testHist->GetBinContent(i) << endl;
         }
-
-        RooRealVar *logMass = new RooRealVar("logMass","logMass",log((double)mass->getMin()),log((double)mass->getMax()));
-        logMass->setBins(nBinsForMass);
 
  		if (dataFull){
             std::cout << "[INFO] opened data for  "  << dataFull->GetName()  <<" - " << dataFull <<std::endl;
             if (verbose) dataFull->Print("V");
 		}
 	 	
-		TCanvas *t = new TCanvas();
-        testHist->Draw();
-        t->Print("testHist.pdf");
-
 		//RooPlot *frame = mass->frame();
 		//dataFull->plotOn(frame);
 
@@ -692,6 +701,14 @@ vector<string> diphotonCats_;
 		thisdataBinned_name =Form("roohist_data_mass_%s",diphotonCats_[cat].c_str());
 		RooDataHist thisdataBinned(thisdataBinned_name.c_str(),"data",*mass,*dataFull);
 		data = (RooDataSet*)&thisdataBinned;
+
+        //logData
+        RooRealVar *logMass = new RooRealVar("logMass","logMass",log((double)mass->getMin()),log((double)mass->getMax()));
+        RooDataSet *logData;
+        string thisLogDataBinned_name;
+        thisLogDataBinned_name = Form("roohist_logdata_mass_%s",diphotonCats_[cat].c_str());
+        RooDataHist thisLogDataBinned(thisLogDataBinned_name.c_str(),"logData",*logMass,Import(*loglogHist));
+        logData = (RooDataSet*)&thisLogDataBinned;
 
 		RooArgList storedPdfs("store");
 		fprintf(resFile,"\\multicolumn{4}{|c|}{\\textbf{Category %d}} \\\\\n",cat);
@@ -714,17 +731,42 @@ vector<string> diphotonCats_;
 			int counter =0;
 			//	while (prob<0.05){
 			while (prob<0.05 && order < 7){ //FIXME is order 7 appropriate ?
+
 				RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
-				if (!bkgPdf){
+                bool useLog = (*funcType == "Dijet"); //This will be something like "if name is dijet/ATLAS/expoPoly"
+
+				if (!bkgPdf && !useLog){
 					// assume this order is not allowed
 					order++;
-				}
-				else {
+				} else {
 
-					//RooFitResult *fitRes = bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
 					int fitStatus = 0;
-					//thisNll = fitRes->minNll();
-					runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
+
+                    if (useLog){
+
+                        cout << "Function is in the " << *funcType << " family. Fitting log counterpart..." << endl;
+
+                        //Make temporary log counterpart bkgPdf and fit 
+                        RooAbsPdf *logBkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
+
+                        //Fit to the log-log histogram
+					    runFit(logBkgPdf,logData,&thisNll,&fitStatus,/*max iterations*/3);
+
+                        //Produce the actual pdf from this log counterpart
+                        bkgPdf = getPdfFromLog(pdfsModel,*funcType,logBkgPdf,logData);
+
+                    }else{
+                        //Proceed as normal
+                        runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
+                    }
+
+
+
+
+
+
+
+
 					if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
 					chi2 = 2.*(prevNll-thisNll);
 					if (chi2<0. && order>1) chi2=0.;
@@ -774,12 +816,10 @@ vector<string> diphotonCats_;
 						// assume this order is not allowed
 						if (order >6) { std::cout << " [WARNING] could not add ] " << std::endl; break ;}
 						order++;
-					}
-
-					else {
+					} else {
 						//RooFitResult *fitRes;
 						int fitStatus=0;
-						runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
+						runFit(bkgPdf,logData,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
 						//thisNll = fitRes->minNll();
 						if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
 						double myNll = 2.*thisNll;
@@ -844,7 +884,7 @@ vector<string> diphotonCats_;
 			RooRealVar nBackground(Form("CMS_hgg_%s_%s_bkgshape_norm",catname.c_str(),sqrts_.c_str()),"nbkg",data->sumEntries(),0,10E8);
 			//nBackground.removeRange(); // bug in roofit will break combine until dev branch brought in
 			//double check the best pdf!
-			int bestFitPdfIndex = getBestFitFunction(pdf,data,&catIndex,!verbose);
+			int bestFitPdfIndex = getBestFitFunction(pdf,logData,&catIndex,!verbose);
 			catIndex.setIndex(bestFitPdfIndex);
 			std::cout << "// ------------------------------------------------------------------------- //" <<std::endl; 
 			std::cout << "[INFO] Created MultiPdf " << pdf->GetName() << ", in Category " << cat << " with a total of " << catIndex.numTypes() << " pdfs"<< std::endl;

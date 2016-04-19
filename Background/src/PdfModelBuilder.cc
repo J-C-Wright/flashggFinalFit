@@ -368,12 +368,16 @@ RooAbsPdf* PdfModelBuilder::getExponentialSingle(string prefix, int order){
 }
 
 
-RooAbsPdf* PdfModelBuilder::getDijetFromLogPdf(RooAbsPdf &pdf, const RooDataSet *logData ) {
+RooAbsPdf* PdfModelBuilder::getDijetFromLogPdf(RooAbsPdf &pdf, const RooDataSet* logData ) {
 
+    //try printing out values
     RooArgList *coeffList = new RooArgList();
 
-
-    RooAbsPdf* dijet
+    //Placeholder
+    string placeholder = "placeholder";
+    int nParam = 4;
+    RooAbsPdf* dijet = getBernstein(placeholder,nParam);
+    return dijet;
 
 }
 
