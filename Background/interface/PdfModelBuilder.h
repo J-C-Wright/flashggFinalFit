@@ -57,6 +57,7 @@ class PdfModelBuilder {
 
     RooAbsPdf* getBernstein(string prefix, int order);
     RooAbsPdf* getChebychev(string prefix, int order);
+    RooAbsPdf* getPowerBasisPoly(string prefix, int order);
     RooAbsPdf* getPowerLaw(string prefix, int order);
     RooAbsPdf* getPowerLawSingle(string prefix, int order);
     RooAbsPdf* getPowerLawGeneric(string prefix, int order);
@@ -65,7 +66,7 @@ class PdfModelBuilder {
     RooAbsPdf* getLaurentSeries(string prefix, int order);
     RooAbsPdf* getKeysPdf(string prefix);
     RooAbsPdf* getPdfFromFile(string &prefix);
-    RooAbsPdf* getDijetFromLogPdf(RooAbsPdf &pdf, const RooDataSet* logData);
+    RooAbsPdf* getDijetFromLogPdf(string prefix, RooAbsPdf* pdf);
 
   private:
    

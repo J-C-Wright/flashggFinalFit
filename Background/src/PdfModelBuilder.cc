@@ -74,37 +74,48 @@ void PdfModelBuilder::setSignalModifierConstant(bool val){
 
 RooAbsPdf* PdfModelBuilder::getChebychev(string prefix, int order){
   
-  RooArgList *coeffList = new RooArgList();
-  for (int i=0; i<order; i++){
-    string name = Form("%s_p%d",prefix.c_str(),i);
-    //params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),1.0,0.,5.)));
-    RooRealVar *param = new RooRealVar(name.c_str(),name.c_str(),0.01,-10.,10.);
-    //RooFormulaVar *form = new RooFormulaVar(Form("%s_sq",name.c_str()),Form("%s_sq",name.c_str()),"@0*@0",RooArgList(*param));
-    params.insert(pair<string,RooRealVar*>(name,param));
-    //prods.insert(pair<string,RooFormulaVar*>(name,form));
-    coeffList->add(*params[name]);
-  }
-  //RooChebychev *cheb = new RooChebychev(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
-  RooPolynomial *cheb = new RooPolynomial(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
-  return cheb;
-  //bkgPdfs.insert(pair<string,RooAbsPdf*>(bern->GetName(),bern));
+    RooArgList *coeffList = new RooArgList();
+    for (int i=0; i<order; i++){
+        string name = Form("%s_p%d",prefix.c_str(),i);
+        RooRealVar *param = new RooRealVar(name.c_str(),name.c_str(),0.01,-10.,10.);
+        params.insert(pair<string,RooRealVar*>(name,param));
+        coeffList->add(*params[name]);
+    }
+  
+    RooPolynomial *cheb = new RooPolynomial(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
+    return cheb;
 
 }
+
+RooAbsPdf* PdfModelBuilder::getPowerBasisPoly(string prefix, int order){
+
+    RooArgList *coeffList = new RooArgList();
+    for (int i=0; i<order; i++) {
+        string name = Form("%s_p%d", prefix.c_str(),i);
+        RooRealVar *param = new RooRealVar(name.c_str(),name.c_str(),0.01,-1000.,1000.);
+        params.insert(pair<string,RooRealVar*>(name,param));
+        coeffList->add(*params[name]);
+    }
+
+    RooPolynomial *poly = new RooPolynomial(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
+    return poly;
+
+}
+        
+        
+
 
 RooAbsPdf* PdfModelBuilder::getBernstein(string prefix, int order){
   
   RooArgList *coeffList = new RooArgList();
-  //coeffList->add(RooConst(1.0)); // no need for cnstant in this interface
   for (int i=0; i<order; i++){
     string name = Form("%s_p%d",prefix.c_str(),i);
-    //params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),1.0,0.,5.)));
     RooRealVar *param = new RooRealVar(name.c_str(),name.c_str(),0.1*(i+1),-5.,5.);
     RooFormulaVar *form = new RooFormulaVar(Form("%s_sq",name.c_str()),Form("%s_sq",name.c_str()),"@0*@0",RooArgList(*param));
     params.insert(pair<string,RooRealVar*>(name,param));
     prods.insert(pair<string,RooFormulaVar*>(name,form));
     coeffList->add(*prods[name]);
   }
-  //RooBernstein *bern = new RooBernstein(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
   if (order==1) {
 	RooBernsteinFast<1> *bern = new RooBernsteinFast<1>(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
   	return bern;
@@ -123,14 +134,9 @@ RooAbsPdf* PdfModelBuilder::getBernstein(string prefix, int order){
   } else if (order==6) {
 	RooBernsteinFast<6> *bern = new RooBernsteinFast<6>(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
   	return bern;
-//  } else if (order==7) {
-//	RooBernsteinFast<7> *bern = new RooBernsteinFast<7>(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
- // 	return bern;
   } else {
 	return NULL;
   }
-  //return bern;
-  //bkgPdfs.insert(pair<string,RooAbsPdf*>(bern->GetName(),bern));
 
 }
 
@@ -368,20 +374,42 @@ RooAbsPdf* PdfModelBuilder::getExponentialSingle(string prefix, int order){
 }
 
 
-RooAbsPdf* PdfModelBuilder::getDijetFromLogPdf(RooAbsPdf &pdf, const RooDataSet* logData ) {
+RooAbsPdf* PdfModelBuilder::getDijetFromLogPdf(string prefix, RooAbsPdf* pdf) {
 
-    //try printing out values
-    RooArgList *coeffList = new RooArgList();
+    bool debug = true;
+    RooArgList *dependents = new RooArgList();
+    dependents->add(*obs_var);
 
-    //Placeholder
-    string placeholder = "placeholder";
-    int nParam = 4;
-    RooAbsPdf* dijet = getBernstein(placeholder,nParam);
+    RooFIter it = pdf->getVariables()->fwdIterator();
+    RooAbsArg* arg;
+
+    while ((arg = it.next())) {
+        string  coeffName = arg->GetName();
+        if (coeffName != "mass" && coeffName != "logMass") dependents->add(*arg);
+    }
+
+    for (unsigned i=1;i<dependents->getSize();i++) {
+        dependents->at(i)->SetName(Form("%s_p%d",prefix.c_str(),i));
+        dependents->at(i)->SetTitle(Form("%s_p%d",prefix.c_str(),i));
+    }
+
+    //Build dijet pdf
+    string expArg = "";
+    for (unsigned i=0;i<pdf->getVariables()->getSize()-1;i++){
+        if (i==0){
+            expArg += "@1";
+        }else if (i==1){
+            expArg += " + @2*log(@0)";
+        }else if (i > 1){
+            expArg += Form(" + @%d*TMath::Power(log(@0),%d)",i+1,i);
+        }
+    }
+    string formula = Form("TMath::Exp(%s)",expArg.c_str()); 
+    cout << "[DIJET FORMULA] " << formula << endl;
+    RooAbsPdf* dijet = new RooGenericPdf(prefix.c_str(),prefix.c_str(),formula.c_str(),*dependents);
+
     return dijet;
-
 }
-
-
 
 
 void PdfModelBuilder::addBkgPdf(string type, int nParams, string name, bool cache){

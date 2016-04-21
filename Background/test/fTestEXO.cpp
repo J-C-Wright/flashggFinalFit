@@ -63,14 +63,16 @@ RooAbsPdf* getPdf(PdfModelBuilder &pdfsModel, string type, int order, const char
   else if (type=="Exponential") return pdfsModel.getExponentialSingle(Form("%s_exp%d",ext,order),order); 
   else if (type=="PowerLaw") return pdfsModel.getPowerLawSingle(Form("%s_pow%d",ext,order),order); 
   else if (type=="Laurent") return pdfsModel.getLaurentSeries(Form("%s_lau%d",ext,order),order); 
+  else if (type=="Polynomial") return pdfsModel.getPowerBasisPoly(Form("%s_poly%d",ext,order),order); 
   else {
     cerr << "[ERROR] -- getPdf() -- type " << type << " not recognised." << endl;
     return NULL;
   }
 }
 
-RooAbsPdf* getPdfFromLog(PdfModelBuilder &pdfsModel, string type, RooAbsPdf &pdf, const RooDataSet* logData) {
-    if (type == "Dijet") return pdfsModel.getDijetFromLogPdf(pdf,logData);
+RooAbsPdf* getPdfFromLog(PdfModelBuilder &pdfsModel, string type, RooAbsPdf* pdf, const char* ext=""){
+    unsigned numPar = pdf->getVariables()->getSize();
+    if (type == "Dijet") return pdfsModel.getDijetFromLogPdf(Form("%s_dijet%d",ext,numPar-2),pdf);
     else {
         cerr << "[ERROR] -- getPdfFromLog() -- type " << type << " not recognised." << endl;
         return NULL;
@@ -623,11 +625,15 @@ vector<string> diphotonCats_;
 	functionClasses.push_back("Exponential");
 	functionClasses.push_back("PowerLaw");
 	functionClasses.push_back("Laurent");
+    functionClasses.push_back("Dijet");
+    functionClasses.push_back("Polynomial");
 	map<string,string> namingMap;
 	namingMap.insert(pair<string,string>("Bernstein","pol"));
 	namingMap.insert(pair<string,string>("Exponential","exp"));
 	namingMap.insert(pair<string,string>("PowerLaw","pow"));
 	namingMap.insert(pair<string,string>("Laurent","lau"));
+    namingMap.insert(pair<string,string>("Dijet","dijet"));
+    namingMap.insert(pair<string,string>("Polynomial","poly"));
 	// store results here
 
 	FILE *resFile ;
@@ -732,10 +738,15 @@ vector<string> diphotonCats_;
 			//	while (prob<0.05){
 			while (prob<0.05 && order < 7){ //FIXME is order 7 appropriate ?
 
+                cout << "Starting " << *funcType << " " << order << endl;
+
 				RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
+
                 bool useLog = (*funcType == "Dijet"); //This will be something like "if name is dijet/ATLAS/expoPoly"
 
-				if (!bkgPdf && !useLog){
+                string dijetLog = "Polynomial";
+
+				if (!bkgPdf && !useLog) {
 					// assume this order is not allowed
 					order++;
 				} else {
@@ -744,28 +755,21 @@ vector<string> diphotonCats_;
 
                     if (useLog){
 
-                        cout << "Function is in the " << *funcType << " family. Fitting log counterpart..." << endl;
+                        cout << "Function is in the " << *funcType << " family. Fitting log counterpart at order " << order -1  << endl;
 
                         //Make temporary log counterpart bkgPdf and fit 
-                        RooAbsPdf *logBkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
+                        RooAbsPdf *logBkgPdf = getPdf(pdfsModel,dijetLog,order,Form("ftest_logpdf_%d_%s",cat,sqrts_.c_str()));
 
                         //Fit to the log-log histogram
 					    runFit(logBkgPdf,logData,&thisNll,&fitStatus,/*max iterations*/3);
 
                         //Produce the actual pdf from this log counterpart
-                        bkgPdf = getPdfFromLog(pdfsModel,*funcType,logBkgPdf,logData);
+                        bkgPdf = getPdfFromLog(pdfsModel,*funcType,logBkgPdf,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
 
                     }else{
                         //Proceed as normal
-                        runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
+                        runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);
                     }
-
-
-
-
-
-
-
 
 					if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
 					chi2 = 2.*(prevNll-thisNll);
@@ -777,17 +781,19 @@ vector<string> diphotonCats_;
 					} else {
 						prob = 0;
 					}
+
 					double gofProb=0;
 					// otherwise we get it later ...
 					if (!saveMultiPdf) plot(mass,bkgPdf,data,Form("%s/%s%d_cat%d.pdf",outDir.c_str(),funcType->c_str(),order,cat),diphotonCats_,fitStatus,&gofProb);
 					cout << "[INFO]\t " << *funcType << " " << order << " " << prevNll << " " << thisNll << " " << chi2 << " " << prob << endl;
-					//fprintf(resFile,"%15s && %d && %10.2f && %10.2f && %10.2f \\\\\n",funcType->c_str(),order,thisNll,chi2,prob);
+
 					prevNll=thisNll;
 					cache_order=prev_order;
 					cache_pdf=prev_pdf;
 					prev_order=order;
 					prev_pdf=bkgPdf;
 					order++;
+                    
 				}
 				counter++;
 			}
@@ -819,7 +825,7 @@ vector<string> diphotonCats_;
 					} else {
 						//RooFitResult *fitRes;
 						int fitStatus=0;
-						runFit(bkgPdf,logData,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
+						runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
 						//thisNll = fitRes->minNll();
 						if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
 						double myNll = 2.*thisNll;
