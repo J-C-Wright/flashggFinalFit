@@ -73,7 +73,7 @@ void LogTestTGraph() {
         binXErrTop[i-1] = fabs(binCentre[i-1] - logbins[i]);
         binXErrBottom[i-1] = fabs(binCentre[i-1] - logbins[i-1]);
 
-        bool setXErrsZero = false;
+        bool setXErrsZero = true;
         if (setXErrsZero){
             binXErrTop[i-1] = 0;
             binXErrBottom[i-1] = 0;
