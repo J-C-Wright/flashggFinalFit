@@ -350,7 +350,7 @@ int main(int argc, char *argv[]){
 				RooRealVar a2("a2","a2",0,0.,10) ; 
 				RooRealVar b2("b2","b2",0,0.,10) ; 
 				RooRealVar d2("c2","c2",0,0.,10) ; 
-				RooAbsPdf *p2 = pdfsModel.getBernstein(Form("bern%d",order),order);
+				RooAbsPdf *p2 = pdfsModel.getBernstein(Form("bern%d",order),order,false);
 				RooGaussian* gaussA = new RooGaussian("gaussa","gaussian PDF",newmass,a1,a2) ; 
 				RooGaussian* gaussB = new RooGaussian("gaussb","gaussian PDF",newmass,b1,b2) ; 
 				RooGaussian* gaussC = new RooGaussian("gaussc","gaussian PDF",newmass,d1,d2) ;

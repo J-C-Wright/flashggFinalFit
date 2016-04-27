@@ -58,23 +58,38 @@ TRandom3 *RandomGen = new TRandom3();
 
 RooAbsPdf* getPdf(PdfModelBuilder &pdfsModel, string type, int order, const char* ext=""){
   
-  if (type=="Bernstein") return pdfsModel.getBernstein(Form("%s_bern%d",ext,order),order); 
-  else if (type=="Chebychev") return pdfsModel.getChebychev(Form("%s_cheb%d",ext,order),order); 
-  else if (type=="Exponential") return pdfsModel.getExponentialSingle(Form("%s_exp%d",ext,order),order); 
-  else if (type=="PowerLaw") return pdfsModel.getPowerLawSingle(Form("%s_pow%d",ext,order),order); 
-  else if (type=="Laurent") return pdfsModel.getLaurentSeries(Form("%s_lau%d",ext,order),order); 
-  else if (type=="Polynomial") return pdfsModel.getPowerBasisPoly(Form("%s_poly%d",ext,order),order); 
+  if (type=="Bernstein") return pdfsModel.getBernstein(Form("%s_bern%d",ext,order),order,false); 
+  else if (type=="Chebychev") return pdfsModel.getChebychev(Form("%s_cheb%d",ext,order),order,false); 
+  else if (type=="Exponential") return pdfsModel.getExponentialSingle(Form("%s_exp%d",ext,order),order,false); 
+  else if (type=="PowerLaw") return pdfsModel.getPowerLawSingle(Form("%s_pow%d",ext,order),order,false); 
+  else if (type=="Laurent") return pdfsModel.getLaurentSeries(Form("%s_lau%d",ext,order),order,false); 
+  else if (type=="Polynomial") return pdfsModel.getPowerBasisPoly(Form("%s_poly%d",ext,order),order,false); 
   else {
     cerr << "[ERROR] -- getPdf() -- type " << type << " not recognised." << endl;
     return NULL;
   }
 }
 
-RooAbsPdf* getPdfFromLog(PdfModelBuilder &pdfsModel, string type, RooAbsPdf* pdf, const char* ext=""){
+RooAbsPdf* getLogPdf(PdfModelBuilder &pdfsModel, string type, int order, const char* ext=""){
+  
+  if (type=="Bernstein") return pdfsModel.getBernstein(Form("%s_bern%d",ext,order),order,true); 
+  else if (type=="Chebychev") return pdfsModel.getChebychev(Form("%s_cheb%d",ext,order),order,true); 
+  else if (type=="Exponential") return pdfsModel.getExponentialSingle(Form("%s_exp%d",ext,order),order,true); 
+  else if (type=="PowerLaw") return pdfsModel.getPowerLawSingle(Form("%s_pow%d",ext,order),order,true); 
+  else if (type=="Laurent") return pdfsModel.getLaurentSeries(Form("%s_lau%d",ext,order),order,true); 
+  else if (type=="Polynomial") return pdfsModel.getPowerBasisPoly(Form("%s_poly%d",ext,order),order,true); 
+  else {
+    cerr << "[ERROR] -- getLogPdf() -- type " << type << " not recognised." << endl;
+    return NULL;
+  }
+}
+
+
+RooAbsPdf* getPdfFromLogPdf(PdfModelBuilder &pdfsModel, string type, RooAbsPdf* pdf, const char* ext=""){
     unsigned numPar = pdf->getVariables()->getSize();
     if (type == "Dijet") return pdfsModel.getDijetFromLogPdf(Form("%s_dijet%d",ext,numPar-2),pdf);
     else {
-        cerr << "[ERROR] -- getPdfFromLog() -- type " << type << " not recognised." << endl;
+        cerr << "[ERROR] -- getPdfFromLogPdf() -- type " << type << " not recognised." << endl;
         return NULL;
     }
 }
@@ -85,15 +100,15 @@ void runFit(RooAbsPdf *pdf, RooDataSet *data, double *NLL, int *stat_t, int MaxT
 
 	int ntries=0;
   	RooArgSet *params_test = pdf->getParameters((const RooArgSet*)(0));
-	//std::cout << " BEFORE ITERATIONS-------------------------------" << std::endl;
-	//params_test->Print("v");
+//	std::cout << " BEFORE ITERATIONS-------------------------------" << std::endl;
+//	params_test->Print("v");
 	int stat=1;
 	double minnll=10e8;
 	while (stat!=0){
 	  if (ntries>=MaxTries) break;
-	  //std::cout << "----------------------------- BEFORE FIT-------------------------------" << std::endl;
-	  //params_test->Print("v");
-	  //std::cout << "-----------------------------------------------------------------------" << std::endl;
+//	  std::cout << "----------------------------- BEFORE FIT-------------------------------" << std::endl;
+//	  params_test->Print("v");
+//	  std::cout << "-----------------------------------------------------------------------" << std::endl;
 	  RooFitResult *fitTest = pdf->fitTo(*data,RooFit::Save(1)
 		,RooFit::Minimizer("Minuit2","minimize"),RooFit::SumW2Error(kTRUE)); //FIXME
           stat = fitTest->status();
@@ -104,6 +119,11 @@ void runFit(RooAbsPdf *pdf, RooDataSet *data, double *NLL, int *stat_t, int MaxT
 	*stat_t = stat;
 	*NLL = minnll;
 }
+
+
+
+
+
 double getProbabilityFtest(double chi2, int ndof,RooAbsPdf *pdfNull, RooAbsPdf *pdfTest, RooRealVar *mass, RooDataSet *data, std::string name){
  
   double prob_asym = TMath::Prob(chi2,ndof);
@@ -414,10 +434,8 @@ void plot(RooRealVar *mass, map<string,RooAbsPdf*> pdfs, RooDataSet *data, strin
   RooPlot *plot = mass->frame();
 
   mass->setRange("unblindReg_1",0,500);
-  //mass->setRange("unblindReg_2",150,180);
   if (BLIND) {
     data->plotOn(plot,Binning(nBinsForMass),CutRange("unblindReg_1"));
-    //data->plotOn(plot,Binning(nBinsForMass),CutRange("unblindReg_2"));
     data->plotOn(plot,Binning(nBinsForMass),Invisible());
   }
   else data->plotOn(plot,Binning(nBinsForMass));
@@ -542,6 +560,93 @@ int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, boo
 	return best_index;
 }
 
+
+void printPdfVars(RooAbsPdf* pdf) {
+
+    RooFIter it = pdf->getVariables()->fwdIterator();
+    RooAbsArg* arg;
+    cout << setw(30) << "Arg Name" << setw(12) << "Value" << endl;
+    while ((arg = it.next())) {
+        cout << setw(30) << arg->GetName() << setw(12) << pdf->getVariables()->getRealValue(arg->GetName()) << endl;
+    }
+
+}
+
+RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *logBinContent, RooDataSet* dataFull, const unsigned nBins){
+
+    double xMin = mass->getMin();
+    double xMax = mass->getMax();
+
+    //Getting the bin boundaries
+    Float_t logbins[nBins];
+    for (unsigned i=0;i<=nBins;i++){
+        logbins[i] = log(xMin + i*(xMax-xMin)/(double)nBins);
+    }
+
+    //Make and fill histogram with mass datapoints
+    TH1F* hist = new TH1F("logMassHist","logMassHist",nBins,logbins);
+    for (unsigned i=0;i<dataFull->numEntries();i++) {
+        const RooArgSet* set = dataFull->get(i);
+        mass = (RooRealVar*)set->find(mass->GetName());
+        hist->Fill(log(mass->getVal()));
+    }
+
+    //Building the loglog dataset
+    //Calculate attributes from histogram
+    vector<double> binContent(nBins);
+    vector<double> binCentre(nBins);
+    vector<double> binXErrTop(nBins);
+    vector<double> binXErrBottom(nBins);
+    vector<double> binYErrTop(nBins);
+    vector<double> binYErrBottom(nBins);
+    for(unsigned i=1;i<=hist->GetNbinsX();i++){
+        if (hist->GetBinContent(i) != 0.0) {
+            binContent[i-1] = log( hist->GetBinContent(i) );
+            binCentre[i-1] = hist->GetBinCenter(i);
+            binYErrTop[i-1] = log( hist->GetBinContent(i) + hist->GetBinError(i) ) - binContent[i-1];
+            if ( hist->GetBinContent(i) != hist->GetBinError(i)) {
+                binYErrBottom[i-1] = binContent[i-1] - log( hist->GetBinContent(i) - hist->GetBinError(i) );
+            }else{
+                binYErrBottom[i-1] = binContent[i-1];
+            }
+        }else{
+            binContent[i-1] = 0;
+            binCentre[i-1] = hist->GetBinCenter(i); 
+            binYErrTop[i-1] = 0;
+            binYErrBottom[i-1] = 0;
+        }
+    }
+
+    //Check for what the max of the bin height is
+    for (unsigned i=0;i<binContent.size();i++){
+        if (binContent[i] > logBinContent->getMax()) logBinContent->setMax(binContent[i]);
+    }
+    cout << "[DEBUG] Max logBinContent is" <<  logBinContent->getMax() << endl;
+
+    //Fill Dataset
+    RooDataSet *logDataSet = new RooDataSet("logDataSet","logDataSet",
+                                            RooArgSet(*logMass,*logBinContent),
+                                            StoreAsymError(RooArgSet(*logMass,*logBinContent)));
+    for (unsigned i=0;i<nBins;i++){
+        logMass->setVal(binCentre[i]);
+        logMass->setAsymError(binXErrBottom[i],binXErrTop[i]);
+        logBinContent->setVal(binContent[i]);
+        logBinContent->setAsymError(binYErrBottom[i],binYErrTop[i]);
+        logDataSet->add(RooArgSet(*logMass,*logBinContent));
+    }
+        
+    return logDataSet;
+
+}
+
+
+
+
+
+
+
+
+
 int main(int argc, char* argv[]){
  
   string fileName;
@@ -605,21 +710,13 @@ vector<string> diphotonCats_;
   system(Form("mkdir -p %s",outDir.c_str()));
   TFile *inFile = TFile::Open(fileName.c_str());
   RooWorkspace *inWS;
+
 	if (saveMultiPdf){
 		transferMacros(inFile,outputfile);
-
 		RooRealVar *intL; 
 		RooRealVar *sqrts;
-		
-		/*std::cout << "DEBUG LC inNT entries  " << inNT->GetEntries() << std::endl;
-		//inNT->Print();
-		float mgg;
-		inNT->SetBranchAddress("mgg",&mgg);
-		for ( int i =0 ; i < inNT->GetEntries() ; i++){
-		inNT->GetEntry(i);
-		
-		} */
 	}
+
 	vector<string> functionClasses;
 	functionClasses.push_back("Bernstein");
 	functionClasses.push_back("Exponential");
@@ -643,9 +740,14 @@ vector<string> diphotonCats_;
 	vector<map<string,RooAbsPdf*> > pdfs_vec;
 
 	PdfModelBuilder pdfsModel;
-	//RooRealVar *mass = (RooRealVar*)inWS->var("mass");
+
     RooRealVar *mass = new RooRealVar ("mass","mass", 300, 1600);
+    RooRealVar *logMass = new RooRealVar("logMass","logMass",log((double)mass->getMin()),log((double)mass->getMax()));
+    RooRealVar *logBinContent = new RooRealVar("logBinContent","logBinContent",0,log(250)); //The upper limit here is a placeholder. It's corrected by the getLogData function
+
 	pdfsModel.setObsVar(mass);
+	pdfsModel.setLogObsVar(logMass);
+
 	double upperEnvThreshold = 0.1; // upper threshold on delta(chi2) to include function in envelope (looser than truth function)
 
 	fprintf(resFile,"Truth Model & d.o.f & $\\Delta NLL_{N+1}$ & $p(\\chi^{2}>\\chi^{2}_{(N\\rightarrow N+1)})$ \\\\\n");
@@ -653,18 +755,20 @@ vector<string> diphotonCats_;
 
 	for (int cat=startingCategory; cat<ncats; cat++){
 
-  TNtuple *inNT;
-		if (isData_){
-			inNT = (TNtuple*)inFile->Get(Form("tree_data_%s_%s",analysisType_.c_str(),diphotonCats_[cat].c_str()));
-		} else {
-			inNT = (TNtuple*)inFile->Get(Form("tree_data_%s_%s",analysisType_.c_str(),diphotonCats_[cat].c_str()));
-		}
+    TNtuple *inNT;
+    if (isData_){
+        inNT = (TNtuple*)inFile->Get(Form("tree_data_%s_%s",analysisType_.c_str(),diphotonCats_[cat].c_str()));
+    } else {
+        inNT = (TNtuple*)inFile->Get(Form("tree_data_%s_%s",analysisType_.c_str(),diphotonCats_[cat].c_str()));
+    }
 
 	if(diphotonCats_[cat]=="EBEE") {
         mass->setRange(320,1600); //FIXME Need a more configurable method to set range
+        logMass->setRange(log(320),log(1600));
         nBinsForMass=64;//roughly binning of 20 GeV acoording to EXO-15-004
     }else if(diphotonCats_[cat]=="EBEB") {
         mass->setRange(230,1600); //FIXME Need a more configurable method to set range
+        logMass->setRange(log(230),log(1600));
         nBinsForMass=69; //roughly binning of 20 GeV according to EXO-15-004
     }
 
@@ -677,44 +781,19 @@ vector<string> diphotonCats_;
         catname = Form("%s",diphotonCats_[cat].c_str());
 		RooDataSet *dataFull = new RooDataSet( "dataFull","dataFull", inNT , RooArgSet(*mass) );
 
-    //Testing out how to make a log log hist of the mass
-
-        TH1F* loglogHist = new TH1F("logMassHist","logMassHist",nBinsForMass,log((double)mass->getMin()),log((double)mass->getMax()));
-
-        for (unsigned i=0;i<dataFull->numEntries();i++) {
-            const RooArgSet* set = dataFull->get(i);
-            mass = (RooRealVar*)set->find(mass->GetName());
-            loglogHist->Fill(log(mass->getVal()));
-        }
-        for (unsigned i=0;i<loglogHist->GetNbinsX();i++){
-            if (loglogHist->GetBinContent(i) != 0){
-                loglogHist->SetBinContent(i,log(loglogHist->GetBinContent(i)));
-            }else{
-                loglogHist->SetBinContent(i,0);
-            }
-        }
-
  		if (dataFull){
             std::cout << "[INFO] opened data for  "  << dataFull->GetName()  <<" - " << dataFull <<std::endl;
             if (verbose) dataFull->Print("V");
 		}
 	 	
-		//RooPlot *frame = mass->frame();
-		//dataFull->plotOn(frame);
-
 		RooDataSet *data;
 		string thisdataBinned_name;
 		thisdataBinned_name =Form("roohist_data_mass_%s",diphotonCats_[cat].c_str());
 		RooDataHist thisdataBinned(thisdataBinned_name.c_str(),"data",*mass,*dataFull);
 		data = (RooDataSet*)&thisdataBinned;
 
-        //logData
-        RooRealVar *logMass = new RooRealVar("logMass","logMass",log((double)mass->getMin()),log((double)mass->getMax()));
-        RooDataSet *logData;
-        string thisLogDataBinned_name;
-        thisLogDataBinned_name = Form("roohist_logdata_mass_%s",diphotonCats_[cat].c_str());
-        RooDataHist thisLogDataBinned(thisLogDataBinned_name.c_str(),"logData",*logMass,Import(*loglogHist));
-        logData = (RooDataSet*)&thisLogDataBinned;
+        //Getting the loglog data
+        RooDataSet* logData = getLogLogDataSet(mass,logMass,logBinContent,dataFull,nBinsForMass);
 
 		RooArgList storedPdfs("store");
 		fprintf(resFile,"\\multicolumn{4}{|c|}{\\textbf{Category %d}} \\\\\n",cat);
@@ -738,6 +817,7 @@ vector<string> diphotonCats_;
 			//	while (prob<0.05){
 			while (prob<0.05 && order < 7){ //FIXME is order 7 appropriate ?
 
+                cout << "---------------------------------------------" << endl;
                 cout << "Starting " << *funcType << " " << order << endl;
 
 				RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
@@ -755,16 +835,33 @@ vector<string> diphotonCats_;
 
                     if (useLog){
 
-                        cout << "Function is in the " << *funcType << " family. Fitting log counterpart at order " << order -1  << endl;
+                        cout << "Function is in the " << *funcType << " family. Fitting log counterpart at order " << order << endl;
 
                         //Make temporary log counterpart bkgPdf and fit 
-                        RooAbsPdf *logBkgPdf = getPdf(pdfsModel,dijetLog,order,Form("ftest_logpdf_%d_%s",cat,sqrts_.c_str()));
+                        RooAbsPdf *logBkgPdf = getLogPdf(pdfsModel,dijetLog,order,Form("ftest_logpdf_%d_%s",cat,sqrts_.c_str()));
 
                         //Fit to the log-log histogram
 					    runFit(logBkgPdf,logData,&thisNll,&fitStatus,/*max iterations*/3);
 
+                        TCanvas *logCanv = new TCanvas();
+                        RooPlot *plotLog = logMass->frame();
+                        logData->plotOn(plotLog,Binning(nBinsForMass));
+                        logBkgPdf->plotOn(plotLog,LineColor(kBlue),LineStyle(1));
+                        plotLog->Draw();
+                        string logPdfName = logBkgPdf->GetName();
+                        logCanv->SaveAs(Form("Plots/%s.pdf",logPdfName.c_str()));
+
                         //Produce the actual pdf from this log counterpart
-                        bkgPdf = getPdfFromLog(pdfsModel,*funcType,logBkgPdf,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
+                        bkgPdf = getPdfFromLogPdf(pdfsModel,*funcType,logBkgPdf,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
+                        printPdfVars(bkgPdf);
+
+                        TCanvas *canvas = new TCanvas();
+                        RooPlot *plot = mass->frame();
+                        data->plotOn(plot,Binning(nBinsForMass));
+                        bkgPdf->plotOn(plot,LineColor(kBlue),LineStyle(1));
+                        plot->Draw();
+                        string pdfName = bkgPdf->GetName();
+                        canvas->SaveAs(Form("Plots/%s.pdf",pdfName.c_str()));
 
                     }else{
                         //Proceed as normal
@@ -817,16 +914,39 @@ vector<string> diphotonCats_;
 				std::cout << "[INFO] Upper end Threshold for highest order function " << upperEnvThreshold <<std::endl;
 
 				while (prob<upperEnvThreshold){
+
 					RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("env_pdf_%d_%s",cat,sqrts_.c_str()));
-					if (!bkgPdf ){
+
+                    bool useLog = (*funcType == "Dijet"); //This will be something like "if name is dijet/ATLAS/expoPoly"
+                    string dijetLog = "Polynomial";
+
+					if (!bkgPdf && !useLog){
 						// assume this order is not allowed
 						if (order >6) { std::cout << " [WARNING] could not add ] " << std::endl; break ;}
 						order++;
 					} else {
-						//RooFitResult *fitRes;
+
 						int fitStatus=0;
-						runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
-						//thisNll = fitRes->minNll();
+
+                        if (useLog){
+
+                            cout << "Function is in the " << *funcType << " family. Fitting log counterpart at order " << order -1  << endl;
+
+                            //Make temporary log counterpart bkgPdf and fit 
+                            RooAbsPdf *logBkgPdf = getLogPdf(pdfsModel,dijetLog,order,Form("ftest_logpdf_%d_%s",cat,sqrts_.c_str()));
+
+                            //Fit to the log-log histogram
+                            runFit(logBkgPdf,logData,&thisNll,&fitStatus,/*max iterations*/3);
+
+                            //Produce the actual pdf from this log counterpart
+                            bkgPdf = getPdfFromLogPdf(pdfsModel,*funcType,logBkgPdf,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
+
+                        }else{
+                            //Proceed as normal
+                            runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);
+                        }
+
+
 						if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
 						double myNll = 2.*thisNll;
 						chi2 = 2.*(prevNll-thisNll);

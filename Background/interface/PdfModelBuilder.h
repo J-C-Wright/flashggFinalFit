@@ -25,6 +25,7 @@ class PdfModelBuilder {
     ~PdfModelBuilder();
 
     void setObsVar(RooRealVar *var);
+    void setLogObsVar(RooRealVar *var);
     void setSignalModifier(RooRealVar *var);
     void setSignalModifierVal(float val);
     void setSignalModifierConstant(bool val);
@@ -55,15 +56,15 @@ class PdfModelBuilder {
     void saveWorkspace(TFile* file);
     void saveWorkspace(string filename);
 
-    RooAbsPdf* getBernstein(string prefix, int order);
-    RooAbsPdf* getChebychev(string prefix, int order);
-    RooAbsPdf* getPowerBasisPoly(string prefix, int order);
-    RooAbsPdf* getPowerLaw(string prefix, int order);
-    RooAbsPdf* getPowerLawSingle(string prefix, int order);
-    RooAbsPdf* getPowerLawGeneric(string prefix, int order);
-    RooAbsPdf* getExponential(string prefix, int order);
-    RooAbsPdf* getExponentialSingle(string prefix, int order);
-    RooAbsPdf* getLaurentSeries(string prefix, int order);
+    RooAbsPdf* getBernstein(string prefix, int order, bool useLogObs);
+    RooAbsPdf* getChebychev(string prefix, int order, bool useLogObs);
+    RooAbsPdf* getPowerBasisPoly(string prefix, int order, bool useLogObs);
+    RooAbsPdf* getPowerLaw(string prefix, int order, bool useLogObs);
+    RooAbsPdf* getPowerLawSingle(string prefix, int order, bool useLogObs);
+    RooAbsPdf* getPowerLawGeneric(string prefix, int order, bool useLogObs);
+    RooAbsPdf* getExponential(string prefix, int order, bool useLogObs);
+    RooAbsPdf* getExponentialSingle(string prefix, int order, bool useLogObs);
+    RooAbsPdf* getLaurentSeries(string prefix, int order, bool useLogObs);
     RooAbsPdf* getKeysPdf(string prefix);
     RooAbsPdf* getPdfFromFile(string &prefix);
     RooAbsPdf* getDijetFromLogPdf(string prefix, RooAbsPdf* pdf);
@@ -92,6 +93,8 @@ class PdfModelBuilder {
 
     RooRealVar *obs_var;
     bool obs_var_set;
+    RooRealVar *log_obs_var;
+    bool log_obs_var_set;
     RooRealVar *signalModifier;
     bool signal_modifier_set;
     bool signal_set;
