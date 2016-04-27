@@ -389,9 +389,11 @@ RooAbsPdf* PdfModelBuilder::getExponentialSingle(string prefix, int order, bool 
 RooAbsPdf* PdfModelBuilder::getDijetFromLogPdf(string prefix, RooAbsPdf* pdf) {
 
     bool debug = true;
-    cout << "[DIJET FORMULA] Starting getDijetFromLog" << endl;
-    cout << "Input poly has " << pdf->getVariables()->getSize() << " args and is order ";
-    cout << pdf->getVariables()->getSize() -1 << endl;
+    if (debug) {
+        cout << "[DIJET] Starting getDijetFromLog" << endl;
+        cout << "[DIJET] Input poly has " << pdf->getVariables()->getSize() << " args in RooArgSet, and is order ";
+        cout << pdf->getVariables()->getSize() -2 << endl;
+    }
 
     RooArgList *dependents = new RooArgList();
     dependents->add(*obs_var);
@@ -402,7 +404,7 @@ RooAbsPdf* PdfModelBuilder::getDijetFromLogPdf(string prefix, RooAbsPdf* pdf) {
     while ((arg = it.next())) {
         string  coeffName = arg->GetName();
         if (coeffName != "mass" && coeffName != "logMass") dependents->add(*arg);
-        cout << "[DIJET FORMULA] " << setw(30) << arg->GetName() << setw(12) << pdf->getVariables()->getRealValue(arg->GetName()) << endl;
+        if (debug) cout << "[DIJET] " << setw(30) << arg->GetName() << setw(12) << pdf->getVariables()->getRealValue(arg->GetName()) << endl;
     }
 
     for (unsigned i=1;i<dependents->getSize();i++) {
@@ -422,7 +424,7 @@ RooAbsPdf* PdfModelBuilder::getDijetFromLogPdf(string prefix, RooAbsPdf* pdf) {
         }
     }
     string formula = Form("TMath::Exp(%s)",expArg.c_str()); 
-    cout << "[DIJET FORMULA] " << formula << endl;
+    if (debug) cout << "[DIJET] " << formula << endl;
     RooAbsPdf* dijet = new RooGenericPdf(prefix.c_str(),prefix.c_str(),formula.c_str(),*dependents);
 
     return dijet;
