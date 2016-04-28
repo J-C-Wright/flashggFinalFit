@@ -536,7 +536,6 @@ int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, boo
 	return best_index;
 }
 
-
 void printPdfVars(RooAbsPdf* pdf) {
 
     RooFIter it = pdf->getVariables()->fwdIterator();
@@ -548,7 +547,21 @@ void printPdfVars(RooAbsPdf* pdf) {
 
 }
 
-RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *logBinContent, RooDataSet* dataFull, const unsigned nBins){
+TH1F* getTH1F(RooRealVar* var, RooDataSet *dataFull, const unsigned nBins){
+    TString name = var->GetName();
+    name += TString("_hist");
+    TH1F *hist = new TH1F(name,name,nBins,var->getMin(),var->getMax());
+    for (unsigned i=0;i<dataFull->numEntries();i++){
+        const RooArgSet* set = dataFull->get(i);
+        var = (RooRealVar*)set->find(var->GetName());
+        hist->Fill(var->getVal());
+    }
+    return hist;
+}
+
+
+
+RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *logWeight, RooDataSet* dataFull, const unsigned nBins){
 
     double xMin = mass->getMin();
     double xMax = mass->getMax();
@@ -576,7 +589,7 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
     vector<double> binYErrTop(nBins);
     vector<double> binYErrBottom(nBins);
     for(unsigned i=1;i<=hist->GetNbinsX();i++){
-        
+
         if (hist->GetBinContent(i) != 0.0) {
             binContent[i-1] = log( hist->GetBinContent(i) );
             binCentre[i-1] = hist->GetBinCenter(i);
@@ -592,62 +605,61 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
             binYErrTop[i-1] = 0;
             binYErrBottom[i-1] = 0;
         }
-        binXErrTop[i-1] = fabs(binCentre[i-1] - logbins[i]);
-        binXErrBottom[i-1] = fabs(binCentre[i-1] - logbins[i-1]);
         bool setXErrsZero = true;
         if (setXErrsZero){
             binXErrTop[i-1] = 0;
             binXErrBottom[i-1] = 0;
+        }else{
+            binXErrTop[i-1] = fabs(binCentre[i-1] - logbins[i]);
+            binXErrBottom[i-1] = fabs(binCentre[i-1] - logbins[i-1]);
         }
     }
 
     //Check for what the max of the bin height is
     for (unsigned i=0;i<binContent.size();i++){
-        if (binContent[i] > logBinContent->getMax()) logBinContent->setMax(binContent[i]);
+        if (binContent[i] > logWeight->getMax()) logWeight->setMax(binContent[i]);
     }
 
     //Fill Dataset
     RooDataSet *logDataSet = new RooDataSet("logDataSet","logDataSet",
-                                            RooArgSet(*logMass,*logBinContent),
-                                            StoreAsymError(RooArgSet(*logMass,*logBinContent)));
+                                            RooArgSet(*logMass,*logWeight),
+                                            StoreAsymError(RooArgSet(*logMass,*logWeight)));
+                                            
     for (unsigned i=0;i<nBins;i++){
-
         logMass->setVal(binCentre[i]);
-        logMass->setAsymError(-binXErrBottom[i],binXErrTop[i]);
-
-        logBinContent->setVal(binContent[i]);
-        logBinContent->setAsymError(-binYErrBottom[i],binYErrTop[i]);
-
-        cout << "[LOGLOG] Bin " << i << ":" << endl;
-        cout << setw(20) << "logMass: " << setw(12) << logMass->getVal() << setw(12) << logMass->getAsymErrorLo() << setw(12) << logMass->getAsymErrorHi() << endl;
-        cout << setw(20) << "logBinContent: " << setw(12) << logBinContent->getVal() << setw(12) << logBinContent->getAsymErrorLo() << setw(12) << logBinContent->getAsymErrorHi() << endl;
-
-        logDataSet->add(RooArgSet(*logMass,*logBinContent));
+        logWeight->setVal(binContent[i]);
+        logWeight->setAsymError(-binYErrBottom[i],binYErrTop[i]);
+        logDataSet->add(RooArgSet(*logMass,*logWeight));
     }
+
+    RooDataSet *logDataNew = new RooDataSet("logData","logData",logDataSet,*logDataSet->get(),0,logWeight->GetName());
+
+    for (unsigned i=0;i<logDataNew->numEntries();i++){
+        logDataNew->get(i);
+        double low,high;
+        logDataNew->weightError(low,high);
+        cout << setw(12) << logDataNew->weight() << setw(12) << low << setw(12) << high << endl;
+    }
+
 
     //TESTING
     TCanvas *canvas = new TCanvas();
     RooPlot *testLogDataPlot = logMass->frame();
-    logDataSet->plotOn(testLogDataPlot);
+    logDataNew->plotOn(testLogDataPlot);
     testLogDataPlot->Draw();
     canvas->SaveAs("Plots/TestLogDataSet.pdf");
-    for (unsigned i=0;i<logDataSet->numEntries();i++) {
-        const RooArgSet* set = logDataSet->get(i);
-        logMass = (RooRealVar*)set->find(logMass->GetName());
-        cout << "Bin " << i << ":" << endl;
-        cout << "LogMass: " << setw(12) << logMass->getVal() << setw(12) << logMass->getAsymErrorLo() << setw(12) << logMass->getAsymErrorHi() << endl;
-        cout << "Content: " << setw(12) << logBinContent->getVal() << setw(12) << logBinContent->getAsymErrorLo() << setw(12) << logBinContent->getAsymErrorHi() << endl;
-    }
-        
-    return logDataSet;
+    
+    return logDataNew;
 }
 
 
-
-
-
-
-
+void testDataSetWeights(RooDataSet *data){
+    cout << "------ Testing dataset weights of " << data->GetName() << " ------" << endl;
+    for (unsigned i=0;i<data->numEntries();i++){
+        data->get(i);
+        cout << setw(6) << i << setw(12) << data->weight() << endl;
+    }
+}
 
 
 int main(int argc, char* argv[]){
@@ -756,7 +768,7 @@ int main(int argc, char* argv[]){
     //Create the variables, including the ones for the loglog proxy fit
     RooRealVar *mass = new RooRealVar ("mass","mass", 300, 1600);
     RooRealVar *logMass = new RooRealVar("logMass","logMass",log((double)mass->getMin()),log((double)mass->getMax()));
-    RooRealVar *logBinContent = new RooRealVar("logBinContent","logBinContent",0,log(250)); //The upper limit here is a placeholder. It's corrected by the getLogData function
+    RooRealVar *logWeight = new RooRealVar("logWeight","logWeight",0,log(250)); //The upper limit here is a placeholder. It's corrected by the getLogData function
 
 	pdfsModel.setObsVar(mass);
 	pdfsModel.setLogObsVar(logMass);
@@ -777,13 +789,15 @@ int main(int argc, char* argv[]){
 
 	if(diphotonCats_[cat]=="EBEE") {
         mass->setRange(320,910); //FIXME Need a more configurable method to set range
-        logMass->setRange(log(320),log(1600));
+        logMass->setRange(log(320),log(910));
         nBinsForMass=29;//roughly binning of 20 GeV acoording to EXO-15-004
     }else if(diphotonCats_[cat]=="EBEB") {
         mass->setRange(230,910); //FIXME Need a more configurable method to set range
-        logMass->setRange(log(230),log(1600));
+        logMass->setRange(log(230),log(910));
         nBinsForMass=34; //roughly binning of 20 GeV according to EXO-15-004
     }
+    mass->setBins(nBinsForMass);
+    logMass->setBins(nBinsForMass);
 
 	if (verbose) std::cout << "[INFO]  considering nTuple " << inNT->GetName() << std::endl;
 		map<string,int> choices;
@@ -806,8 +820,16 @@ int main(int argc, char* argv[]){
 		data = (RooDataSet*)&thisdataBinned;
 
         //Getting the loglog data
-        RooDataSet* logData = getLogLogDataSet(mass,logMass,logBinContent,dataFull,nBinsForMass);
+        RooDataSet* logData = getLogLogDataSet(mass,logMass,logWeight,dataFull,nBinsForMass);
+        testDataSetWeights(logData);
 
+        //Print datasets for inspection
+        cout << "---------- Mass Data -------------" << endl;
+        data->Print("V");
+        cout << "---------- LogMass Data ----------" << endl;
+        logData->Print("V");
+        cout << "----------------------------------" << endl;
+        
 		RooArgList storedPdfs("store");
 		fprintf(resFile,"\\multicolumn{4}{|c|}{\\textbf{Category %d}} \\\\\n",cat);
 		fprintf(resFile,"\\hline\n");
@@ -857,7 +879,7 @@ int main(int argc, char* argv[]){
 
                         TCanvas *logCanv = new TCanvas();
                         RooPlot *plotLog = logMass->frame();
-                        logData->plotOn(plotLog,Binning(nBinsForMass));
+                        logData->plotOnXY(plotLog,YVar(*logWeight));
                         logBkgPdf->plotOn(plotLog,LineColor(kBlue),LineStyle(1));
                         plotLog->Draw();
                         string logPdfName = logBkgPdf->GetName();
@@ -869,7 +891,7 @@ int main(int argc, char* argv[]){
 
                         TCanvas *canvas = new TCanvas();
                         RooPlot *plot = mass->frame();
-                        data->plotOn(plot,Binning(nBinsForMass));
+                        data->plotOn(plot);
                         bkgPdf->plotOn(plot,LineColor(kBlue),LineStyle(1));
                         plot->Draw();
                         string pdfName = bkgPdf->GetName();
