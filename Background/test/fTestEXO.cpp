@@ -584,8 +584,6 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
     //Calculate attributes from histogram
     vector<double> binContent(nBins);
     vector<double> binCentre(nBins);
-    vector<double> binXErrTop(nBins);
-    vector<double> binXErrBottom(nBins);
     vector<double> binYErrTop(nBins);
     vector<double> binYErrBottom(nBins);
     for(unsigned i=1;i<=hist->GetNbinsX();i++){
@@ -605,14 +603,7 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
             binYErrTop[i-1] = 0;
             binYErrBottom[i-1] = 0;
         }
-        bool setXErrsZero = true;
-        if (setXErrsZero){
-            binXErrTop[i-1] = 0;
-            binXErrBottom[i-1] = 0;
-        }else{
-            binXErrTop[i-1] = fabs(binCentre[i-1] - logbins[i]);
-            binXErrBottom[i-1] = fabs(binCentre[i-1] - logbins[i-1]);
-        }
+
     }
 
     //Check for what the max of the bin height is
@@ -629,19 +620,39 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
         logWeight->setVal(binContent[i]);
         logWeight->setAsymError(-binYErrBottom[i],binYErrTop[i]);
         logDataSet->add(RooArgSet(*logMass,*logWeight));
+        cout << setw(6) << i << setw(12) << logMass->getVal();
+        cout << setw(12) << logWeight->getVal() << setw(12) << logWeight->getAsymErrorLo() << setw(12) << logWeight->getAsymErrorHi() << endl;
     }
-    RooDataSet *logDataNew = new RooDataSet("logData","logData",logDataSet,*logDataSet->get(),0,logWeight->GetName());
+    RooDataSet *logDataNew = new RooDataSet("logData","logData",
+                                            logDataSet,*logDataSet->get(),
+                                            0,logWeight->GetName());
 
-
-
-    //TESTING
+    //Testing out the dataset
+    cout << "logDataSetNew" << endl;
     for (unsigned i=0;i<logDataNew->numEntries();i++){
         const RooArgSet* set = logDataNew->get(i);
         logMass = (RooRealVar*)set->find(logMass->GetName());
-        cout << setw(6) << i << setw(12) << logMass->getVal();
         double low,high;
-        logDataNew->weightError(low,high,RooAbsData::Poisson);
-        cout << setw(12) << logDataNew->weight() << setw(12) << low << setw(12) << high << endl;
+        logDataNew->weightError(low,high);
+
+        cout << setw(6)  << i << setw(12) << logMass->getVal();
+        cout << setw(12) << logDataNew->weight() << setw(12) << low << setw(12) << high;
+        cout << setw(12) << logDataNew->weightError() << endl;
+    }
+
+    cout << "logDataSet:" << endl;
+    for (unsigned i=0;i<logDataSet->numEntries();i++){
+        const RooArgSet* set = logDataSet->get(i);
+        logMass = (RooRealVar*)set->find(logMass->GetName());
+        logWeight = (RooRealVar*)set->find(logWeight->GetName());
+        double low,high;
+        logDataSet->weightError(low,high);
+
+        cout << "methods " << setw(6)  << i << setw(12) << logMass->getVal();
+        cout << setw(12) << logDataSet->weight() << setw(12) << low << setw(12) << high;
+        cout << setw(12) << logDataSet->weightError() << endl;
+        cout << "objects " << setw(6) << i << setw(12) << logMass->getVal();
+        cout << setw(12) << logWeight->getVal() << setw(12) << logWeight->getAsymErrorLo() << setw(12) << logWeight->getAsymErrorHi() << endl;
     }
 
     TCanvas *canvas = new TCanvas();
@@ -651,15 +662,6 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
     canvas->SaveAs("Plots/TestLogDataSet.pdf");
     
     return logDataNew;
-}
-
-
-void testDataSetWeights(RooDataSet *data){
-    cout << "------ Testing dataset weights of " << data->GetName() << " ------" << endl;
-    for (unsigned i=0;i<data->numEntries();i++){
-        data->get(i);
-        cout << setw(6) << i << setw(12) << data->weight() << endl;
-    }
 }
 
 
@@ -822,7 +824,6 @@ int main(int argc, char* argv[]){
 
         //Getting the loglog data
         RooDataSet* logData = getLogLogDataSet(mass,logMass,logWeight,dataFull,nBinsForMass);
-        testDataSetWeights(logData);
 
         //Print datasets for inspection
         cout << "---------- Mass Data -------------" << endl;
