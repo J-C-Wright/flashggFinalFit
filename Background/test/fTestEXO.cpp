@@ -620,32 +620,33 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
         if (binContent[i] > logWeight->getMax()) logWeight->setMax(binContent[i]);
     }
 
-    //Fill Dataset
+    //Make dataset
     RooDataSet *logDataSet = new RooDataSet("logDataSet","logDataSet",
                                             RooArgSet(*logMass,*logWeight),
                                             StoreAsymError(RooArgSet(*logMass,*logWeight)));
-                                            
     for (unsigned i=0;i<nBins;i++){
         logMass->setVal(binCentre[i]);
         logWeight->setVal(binContent[i]);
         logWeight->setAsymError(-binYErrBottom[i],binYErrTop[i]);
         logDataSet->add(RooArgSet(*logMass,*logWeight));
     }
-
     RooDataSet *logDataNew = new RooDataSet("logData","logData",logDataSet,*logDataSet->get(),0,logWeight->GetName());
 
-    for (unsigned i=0;i<logDataNew->numEntries();i++){
-        logDataNew->get(i);
-        double low,high;
-        logDataNew->weightError(low,high);
-        cout << setw(12) << logDataNew->weight() << setw(12) << low << setw(12) << high << endl;
-    }
 
 
     //TESTING
+    for (unsigned i=0;i<logDataNew->numEntries();i++){
+        const RooArgSet* set = logDataNew->get(i);
+        logMass = (RooRealVar*)set->find(logMass->GetName());
+        cout << setw(6) << i << setw(12) << logMass->getVal();
+        double low,high;
+        logDataNew->weightError(low,high,RooAbsData::Poisson);
+        cout << setw(12) << logDataNew->weight() << setw(12) << low << setw(12) << high << endl;
+    }
+
     TCanvas *canvas = new TCanvas();
     RooPlot *testLogDataPlot = logMass->frame();
-    logDataNew->plotOn(testLogDataPlot);
+    logDataNew->plotOnXY(testLogDataPlot);
     testLogDataPlot->Draw();
     canvas->SaveAs("Plots/TestLogDataSet.pdf");
     
