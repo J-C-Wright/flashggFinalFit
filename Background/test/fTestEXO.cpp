@@ -547,21 +547,7 @@ void printPdfVars(RooAbsPdf* pdf) {
 
 }
 
-TH1F* getTH1F(RooRealVar* var, RooDataSet *dataFull, const unsigned nBins){
-    TString name = var->GetName();
-    name += TString("_hist");
-    TH1F *hist = new TH1F(name,name,nBins,var->getMin(),var->getMax());
-    for (unsigned i=0;i<dataFull->numEntries();i++){
-        const RooArgSet* set = dataFull->get(i);
-        var = (RooRealVar*)set->find(var->GetName());
-        hist->Fill(var->getVal());
-    }
-    return hist;
-}
-
-
-
-RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *logWeight, RooDataSet* dataFull, const unsigned nBins){
+RooDataHist* getLogLogDataHist(RooRealVar *mass, RooRealVar* logMass, RooDataSet* dataFull, const unsigned nBins, string &name){
 
     double xMin = mass->getMin();
     double xMax = mass->getMax();
@@ -573,7 +559,7 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
     }
 
     //Make and fill histogram with mass datapoints
-    TH1F* hist = new TH1F("logMassHist","logMassHist",nBins,logbins);
+    TH1F* hist = new TH1F(Form("%s_TH1",name.c_str()),Form("%s_TH1",name.c_str()),nBins,logbins);
     for (unsigned i=0;i<dataFull->numEntries();i++) {
         const RooArgSet* set = dataFull->get(i);
         mass = (RooRealVar*)set->find(mass->GetName());
@@ -606,64 +592,54 @@ RooDataSet* getLogLogDataSet(RooRealVar *mass, RooRealVar* logMass, RooRealVar *
 
     }
 
-    //Check for what the max of the bin height is
-    for (unsigned i=0;i<binContent.size();i++){
-        if (binContent[i] > logWeight->getMax()) logWeight->setMax(binContent[i]);
-    }
-
-    //Make dataset
-    RooDataSet *logDataSet = new RooDataSet("logDataSet","logDataSet",
-                                            RooArgSet(*logMass,*logWeight),
-                                            StoreAsymError(RooArgSet(*logMass,*logWeight)));
+    /*
     for (unsigned i=0;i<nBins;i++){
-        logMass->setVal(binCentre[i]);
-        logWeight->setVal(binContent[i]);
-        logWeight->setAsymError(-binYErrBottom[i],binYErrTop[i]);
-        logDataSet->add(RooArgSet(*logMass,*logWeight));
-        cout << setw(6) << i << setw(12) << logMass->getVal();
-        cout << setw(12) << logWeight->getVal() << setw(12) << logWeight->getAsymErrorLo() << setw(12) << logWeight->getAsymErrorHi() << endl;
+        cout << setw(6)  << i << setw(12) << binContent[i];
+        cout << setw(12) << binYErrBottom[i] << setw(12) << binYErrTop[i] << endl;
     }
-    RooDataSet *logDataNew = new RooDataSet("logData","logData",
-                                            logDataSet,*logDataSet->get(),
-                                            0,logWeight->GetName());
+    */
 
-    //Testing out the dataset
-    cout << "logDataSetNew" << endl;
-    for (unsigned i=0;i<logDataNew->numEntries();i++){
-        const RooArgSet* set = logDataNew->get(i);
-        logMass = (RooRealVar*)set->find(logMass->GetName());
-        double low,high;
-        logDataNew->weightError(low,high);
-
-        cout << setw(6)  << i << setw(12) << logMass->getVal();
-        cout << setw(12) << logDataNew->weight() << setw(12) << low << setw(12) << high;
-        cout << setw(12) << logDataNew->weightError() << endl;
+    //Make RooDataHist
+    RooDataHist *logDataHist = new RooDataHist(Form("%s_RooHist",name.c_str()),Form("%s_RooHist",name.c_str()),*logMass,hist);
+    for (Int_t i=0;i<logDataHist->numEntries();i++){
+        const RooArgSet* obs = logDataHist->get(i);
+        logDataHist->set(*obs,binContent[i],binYErrBottom[i],binYErrTop[i]);
     }
 
-    cout << "logDataSet:" << endl;
-    for (unsigned i=0;i<logDataSet->numEntries();i++){
-        const RooArgSet* set = logDataSet->get(i);
-        logMass = (RooRealVar*)set->find(logMass->GetName());
-        logWeight = (RooRealVar*)set->find(logWeight->GetName());
-        double low,high;
-        logDataSet->weightError(low,high);
+    for (Int_t i=0;i<logDataHist->numEntries();i++){
+        const RooArgSet* obs = logDataHist->get(i);
 
-        cout << "methods " << setw(6)  << i << setw(12) << logMass->getVal();
-        cout << setw(12) << logDataSet->weight() << setw(12) << low << setw(12) << high;
-        cout << setw(12) << logDataSet->weightError() << endl;
-        cout << "objects " << setw(6) << i << setw(12) << logMass->getVal();
-        cout << setw(12) << logWeight->getVal() << setw(12) << logWeight->getAsymErrorLo() << setw(12) << logWeight->getAsymErrorHi() << endl;
+        double low,high;
+        logDataHist->weightError(low,high);
+        /*
+        cout << setw(6)  << i << setw(12) << logDataHist->weight();
+        cout << setw(12) << low << setw(12) << high << endl;
+        */
     }
 
     TCanvas *canvas = new TCanvas();
     RooPlot *testLogDataPlot = logMass->frame();
-    logDataNew->plotOnXY(testLogDataPlot);
+    logDataHist->plotOn(testLogDataPlot);
     testLogDataPlot->Draw();
     canvas->SaveAs("Plots/TestLogDataSet.pdf");
-    
-    return logDataNew;
+
+    return logDataHist;
 }
 
+void printWeights(RooDataHist &hist){
+
+    cout << "Printing " << hist.GetName() << endl;
+    cout << setw(6) << "Bin" << setw(12) << "Weight" << setw(12) << "Err Low";
+    cout << setw(12) << "Err High" << endl;
+    for (Int_t i=0;i<hist.numEntries();i++){
+        const RooArgSet* obs = hist.get(i);
+        double low,high;
+        hist.weightError(low,high);
+        cout << setw(6)  << i << setw(12) << hist.weight();
+        cout << setw(12) << low << setw(12) << high << endl;
+    }
+
+}
 
 int main(int argc, char* argv[]){
 
@@ -771,7 +747,6 @@ int main(int argc, char* argv[]){
     //Create the variables, including the ones for the loglog proxy fit
     RooRealVar *mass = new RooRealVar ("mass","mass", 300, 1600);
     RooRealVar *logMass = new RooRealVar("logMass","logMass",log((double)mass->getMin()),log((double)mass->getMax()));
-    RooRealVar *logWeight = new RooRealVar("logWeight","logWeight",0,log(250)); //The upper limit here is a placeholder. It's corrected by the getLogData function
 
 	pdfsModel.setObsVar(mass);
 	pdfsModel.setLogObsVar(logMass);
@@ -816,6 +791,7 @@ int main(int argc, char* argv[]){
             if (verbose) dataFull->Print("V");
 		}
 	 	
+        //Getting the mass data
 		RooDataSet *data;
 		string thisdataBinned_name;
 		thisdataBinned_name =Form("roohist_data_mass_%s",diphotonCats_[cat].c_str());
@@ -823,7 +799,14 @@ int main(int argc, char* argv[]){
 		data = (RooDataSet*)&thisdataBinned;
 
         //Getting the loglog data
-        RooDataSet* logData = getLogLogDataSet(mass,logMass,logWeight,dataFull,nBinsForMass);
+        string logDataBinned_name = Form("roohist_data_logmass_%s",diphotonCats_[cat].c_str());
+        RooDataHist *logDataHisto = getLogLogDataHist(mass,logMass,dataFull,nBinsForMass,logDataBinned_name);
+        RooDataSet *logData;
+        logData = (RooDataSet*)logDataHisto;
+
+        printWeights(thisdataBinned);
+        printWeights(*logDataHisto);
+
 
         //Print datasets for inspection
         cout << "---------- Mass Data -------------" << endl;
@@ -879,25 +862,8 @@ int main(int argc, char* argv[]){
                         //Fit to the log-log histogram
 					    runFit(logBkgPdf,logData,&thisNll,&fitStatus,/*max iterations*/3);
 
-                        TCanvas *logCanv = new TCanvas();
-                        RooPlot *plotLog = logMass->frame();
-                        logData->plotOnXY(plotLog,YVar(*logWeight));
-                        logBkgPdf->plotOn(plotLog,LineColor(kBlue),LineStyle(1));
-                        plotLog->Draw();
-                        string logPdfName = logBkgPdf->GetName();
-                        logCanv->SaveAs(Form("Plots/%s.pdf",logPdfName.c_str()));
-
                         //Produce the actual pdf from this log counterpart
                         bkgPdf = getPdfFromLogPdf(pdfsModel,*funcType,logBkgPdf,Form("ftest_pdf_%d_%s",cat,sqrts_.c_str()));
-                        printPdfVars(bkgPdf);
-
-                        TCanvas *canvas = new TCanvas();
-                        RooPlot *plot = mass->frame();
-                        data->plotOn(plot);
-                        bkgPdf->plotOn(plot,LineColor(kBlue),LineStyle(1));
-                        plot->Draw();
-                        string pdfName = bkgPdf->GetName();
-                        canvas->SaveAs(Form("Plots/%s.pdf",pdfName.c_str()));
 
                     }else{
                         //Proceed as normal
