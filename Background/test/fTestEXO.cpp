@@ -31,6 +31,7 @@
 #include "TH1I.h"
 #include "TArrow.h"
 #include "TKey.h"
+#include "RooBinning.h"
 
 #include "RooCategory.h"
 #include "HiggsAnalysis/CombinedLimit/interface/RooMultiPdf.h"
@@ -558,6 +559,9 @@ RooDataHist* getLogLogDataHist(RooRealVar *mass, RooRealVar* logMass, RooDataSet
         logbins[i] = log(xMin + i*(xMax-xMin)/(double)nBins);
     }
 
+    RooBinning *binning = new RooBinning(nBins,*logbins,"testBinning");
+    logMass->setBinning(*binning,binning->GetName());
+
     //Make and fill histogram with mass datapoints
     TH1F* hist = new TH1F(Form("%s_TH1",name.c_str()),Form("%s_TH1",name.c_str()),nBins,logbins);
     for (unsigned i=0;i<dataFull->numEntries();i++) {
@@ -592,13 +596,6 @@ RooDataHist* getLogLogDataHist(RooRealVar *mass, RooRealVar* logMass, RooDataSet
 
     }
 
-    /*
-    for (unsigned i=0;i<nBins;i++){
-        cout << setw(6)  << i << setw(12) << binContent[i];
-        cout << setw(12) << binYErrBottom[i] << setw(12) << binYErrTop[i] << endl;
-    }
-    */
-
     //Make RooDataHist
     RooDataHist *logDataHist = new RooDataHist(Form("%s_RooHist",name.c_str()),Form("%s_RooHist",name.c_str()),*logMass,hist);
     for (Int_t i=0;i<logDataHist->numEntries();i++){
@@ -608,35 +605,30 @@ RooDataHist* getLogLogDataHist(RooRealVar *mass, RooRealVar* logMass, RooDataSet
 
     for (Int_t i=0;i<logDataHist->numEntries();i++){
         const RooArgSet* obs = logDataHist->get(i);
-
         double low,high;
         logDataHist->weightError(low,high);
-        /*
-        cout << setw(6)  << i << setw(12) << logDataHist->weight();
-        cout << setw(12) << low << setw(12) << high << endl;
-        */
     }
 
     TCanvas *canvas = new TCanvas();
     RooPlot *testLogDataPlot = logMass->frame();
     logDataHist->plotOn(testLogDataPlot);
     testLogDataPlot->Draw();
-    canvas->SaveAs("Plots/TestLogDataSet.pdf");
+    canvas->SaveAs(Form("Plots/TestPlot_%s.pdf",name.c_str()));
 
     return logDataHist;
 }
 
-void printWeights(RooDataHist &hist){
+void printWeights(RooDataHist &hist,RooRealVar *var){
 
     cout << "Printing " << hist.GetName() << endl;
-    cout << setw(6) << "Bin" << setw(12) << "Weight" << setw(12) << "Err Low";
+    cout << setw(6) << "Bin" << setw(12) << "BinCentre" << setw(12) << "Weight" << setw(12) << "Err Low";
     cout << setw(12) << "Err High" << endl;
     for (Int_t i=0;i<hist.numEntries();i++){
         const RooArgSet* obs = hist.get(i);
         double low,high;
         hist.weightError(low,high);
-        cout << setw(6)  << i << setw(12) << hist.weight();
-        cout << setw(12) << low << setw(12) << high << endl;
+        cout << setw(6)  << i << setw(12) << obs->getRealValue(var->GetName()) << setw(12) << hist.weight();
+        cout << setw(12) << low << setw(12) << high << setw(12) << hist.weightError() << endl;
     }
 
 }
@@ -799,14 +791,13 @@ int main(int argc, char* argv[]){
 		data = (RooDataSet*)&thisdataBinned;
 
         //Getting the loglog data
+        RooDataSet *logData;
         string logDataBinned_name = Form("roohist_data_logmass_%s",diphotonCats_[cat].c_str());
         RooDataHist *logDataHisto = getLogLogDataHist(mass,logMass,dataFull,nBinsForMass,logDataBinned_name);
-        RooDataSet *logData;
         logData = (RooDataSet*)logDataHisto;
 
-        printWeights(thisdataBinned);
-        printWeights(*logDataHisto);
-
+        printWeights(thisdataBinned,mass);
+        printWeights(*logDataHisto,logMass);
 
         //Print datasets for inspection
         cout << "---------- Mass Data -------------" << endl;
