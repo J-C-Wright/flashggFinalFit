@@ -181,6 +181,44 @@ RooAbsPdf* PdfModelBuilder::getPowerLawGeneric(string prefix, int order){
   }
 }
 
+RooAbsPdf* PdfModelBuilder::getPhenoFunction(string prefix, int order){
+
+    if (order==0){
+        cerr << "[WARNING] -- Pheno function must be at least order one" << endl;
+        return NULL;
+    }
+
+    RooArgList *dependents = new RooArgList();
+    dependents->add(*obs_var);
+
+    float sqrtS = 13000.;
+    string var = Form("(@0/%f)",sqrtS);
+    string formula = "";
+    for (unsigned i=0;i<order;i++){
+
+        if (i > 0) formula += "+";
+        formula += Form("@%d*TMath::Power(%s,@%d*TMath::Power(1-%s,@%d))",1+i*3,var.c_str(),2+i*3,var.c_str(),3+i*3);
+
+        string name1 =  Form("%s_%d",prefix.c_str(),1+i*3);
+        string name2 =  Form("%s_%d",prefix.c_str(),2+i*3);
+        string name3 =  Form("%s_%d",prefix.c_str(),3+i*3);
+
+        params.insert(pair<string,RooRealVar*>(name1, new RooRealVar(name1.c_str(),name1.c_str(),0.01,-0.1,0.1)));
+        params.insert(pair<string,RooRealVar*>(name2, new RooRealVar(name2.c_str(),name2.c_str(),-3,-10,10)));
+        params.insert(pair<string,RooRealVar*>(name3, new RooRealVar(name3.c_str(),name3.c_str(),7,-10,10)));
+
+        dependents->add(*params[name1]);
+        dependents->add(*params[name2]);
+        dependents->add(*params[name3]);
+    }
+    cout << "Pheno formula: " << formula << endl;
+    dependents->Print("v");
+    RooGenericPdf *pheno = new RooGenericPdf(prefix.c_str(),prefix.c_str(),formula.c_str(),*dependents);
+    pheno->Print("v");
+    return pheno;
+}
+
+
 RooAbsPdf* PdfModelBuilder::getPowerLaw(string prefix, int order){
   
   RooArgList coefList;

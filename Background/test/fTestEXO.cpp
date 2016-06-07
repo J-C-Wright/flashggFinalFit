@@ -59,6 +59,7 @@ TRandom3 *RandomGen = new TRandom3();
 RooAbsPdf* getPdf(PdfModelBuilder &pdfsModel, string type, int order, const char* ext=""){
   
   if (type=="Bernstein") return pdfsModel.getBernstein(Form("%s_bern%d",ext,order),order); 
+  else if (type=="Pheno") return pdfsModel.getPhenoFunction(Form("%s_pheno%d",ext,order),order); 
   else if (type=="Chebychev") return pdfsModel.getChebychev(Form("%s_cheb%d",ext,order),order); 
   else if (type=="Exponential") return pdfsModel.getExponentialSingle(Form("%s_exp%d",ext,order),order); 
   else if (type=="PowerLaw") return pdfsModel.getPowerLawSingle(Form("%s_pow%d",ext,order),order); 
@@ -608,11 +609,13 @@ vector<string> diphotonCats_;
 	}
 	vector<string> functionClasses;
 	functionClasses.push_back("Bernstein");
+	functionClasses.push_back("Pheno");
 	functionClasses.push_back("Exponential");
 	functionClasses.push_back("PowerLaw");
 	functionClasses.push_back("Laurent");
 	map<string,string> namingMap;
 	namingMap.insert(pair<string,string>("Bernstein","pol"));
+	namingMap.insert(pair<string,string>("Pheno","pheno"));
 	namingMap.insert(pair<string,string>("Exponential","exp"));
 	namingMap.insert(pair<string,string>("PowerLaw","pow"));
 	namingMap.insert(pair<string,string>("Laurent","lau"));

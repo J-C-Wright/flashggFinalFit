@@ -66,6 +66,8 @@ class PdfModelBuilder {
     RooAbsPdf* getKeysPdf(string prefix);
     RooAbsPdf* getPdfFromFile(string &prefix);
 
+    RooAbsPdf* getPhenoFunction(string prefix, int order);
+
   private:
    
     vector<string> recognisedPdfTypes;
